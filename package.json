@@ -1,0 +1,74 @@
+{
+  "name": "react-sticky-video",
+  "version": "0.1.1",
+  "description": "A component for creating sticky and floating video easily.",
+  "main": "./dist/index.js",
+  "authors": [
+    "Tim Kuo <kako0507@gmail.com>"
+  ],
+  "keywords": [
+    "react",
+    "sticky",
+    "video",
+    "youtube"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kako0507/react-sticky-video.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kako0507/react-sticky-video.git/issues"
+  },
+  "homepage": "https://github.com/kako0507/react-sticky-video#readme",
+  "dependencies": {
+    "classnames": "^2.2.6",
+    "get-video-id": "^3.1.4",
+    "load-script": "^1.0.0",
+    "prop-types": "^15.7.2",
+    "query-string": "^6.8.3"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.6.4",
+    "@babel/core": "^7.6.4",
+    "@babel/plugin-proposal-class-properties": "^7.5.5",
+    "@babel/plugin-proposal-decorators": "^7.6.0",
+    "@babel/plugin-proposal-optional-chaining": "^7.6.0",
+    "@babel/preset-env": "^7.6.3",
+    "@babel/preset-react": "^7.6.3",
+    "babel-eslint": "^10.0.3",
+    "babel-loader": "^8.0.6",
+    "bulma": "0.7.5",
+    "css-loader": "^3.2.0",
+    "eslint": "^6.5.1",
+    "eslint-config-airbnb": "^18.0.1",
+    "eslint-plugin-import": "^2.18.2",
+    "eslint-plugin-jsx-a11y": "^6.2.3",
+    "eslint-plugin-react": "^7.16.0",
+    "eslint-plugin-react-hooks": "^2.1.2",
+    "html-webpack-plugin": "^3.2.0",
+    "lodash": "^4.17.15",
+    "mini-css-extract-plugin": "^0.8.0",
+    "mixin-deep": "^2.0.1",
+    "node-sass": "^4.12.0",
+    "optimize-css-assets-webpack-plugin": "^5.0.3",
+    "raw-loader": "^3.1.0",
+    "react": "^16.10.2",
+    "react-dom": "^16.10.2",
+    "react-github-corner": "^2.3.0",
+    "react-markdown": "4.2.2",
+    "sass-loader": "^8.0.0",
+    "set-value": "^3.0.1",
+    "terser-webpack-plugin": "^2.2.1",
+    "webpack": "^4.41.2",
+    "webpack-cli": "^3.3.9",
+    "webpack-dev-server": "^3.8.2"
+  },
+  "scripts": {
+    "develop": "webpack-dev-server --example",
+    "build": "webpack --mode=production",
+    "build-example": "webpack --mode=production --example && node-sass example/main.scss build/main.css --output-style compressed",
+    "prepublish": "yarn run build",
+    "lint": "eslint src --ext=js,jsx"
+  }
+}

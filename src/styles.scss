@@ -1,0 +1,59 @@
+@keyframes fade-in {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.container {
+  position: relative;
+  margin: 0 auto;
+
+  .hidden {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  video,
+  iframe {
+    width: 100%;
+    height: 100%;
+    outline: none;
+  }
+
+  >.sticky {
+    &.player {
+      position: fixed;
+      z-index: 1001;
+      animation: fade-in .5s ease forwards;
+
+      &.st-top-right {
+        top: 20px;
+        right: 20px;
+        transform: translateY(-100%);
+      }
+      &.st-top-left {
+          top: 20px;
+          left: 20px;
+          transform: translateY(-100%);
+      }
+      &.st-bottom-right {
+        right: 20px;
+        bottom: 20px;
+        transform: translateY(100%);
+      }
+      &.st-bottom-left {
+        bottom: 20px;
+        left: 20px;
+        transform: translateY(100%);
+      }
+    }
+  }
+}
