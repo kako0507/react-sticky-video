@@ -5,39 +5,40 @@ import React, {
 } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
-import getVideoId from 'get-video-id';
-import youtube from './services/youtube';
-import video from './services/video';
-import { isElementInViewport } from './utils';
+import Youtube from './services/youtube';
+import Facebook from './services/facebook';
+import FileSource from './services/file-source';
+import { isElementInViewport, getVideoInfo } from './utils';
 import styles from './styles.scss';
 
 const StickyVideo = ({
   url,
-  tracks,
   height,
   width,
   autoPlay,
   controls,
+  playsInline,
   stickyConfig: {
     width: stickyWidth,
     height: stickyHeight,
     position,
   },
+  serviceConfig,
 }) => {
   const [sticky, setSticky] = useState(false);
-  const [player, setPlayer] = useState(null);
+  const [isPlaying, setPlaying] = useState(false);
 
   const refContainer = useRef(null);
   const refHidden = useRef(null);
-  const refPlayer = useRef(null);
+  const refPlayerContainer = useRef(null);
 
-  const { id: videoId, service } = getVideoId(url);
+  const { id: videoId, service } = getVideoInfo(url);
 
   useEffect(() => {
     const element = refHidden.current;
     const handleScroll = () => {
       if (!sticky && !isElementInViewport(element)) {
-        if (player?.isPlayed()) {
+        if (isPlaying) {
           setSticky(true);
         }
       }
@@ -50,38 +51,52 @@ const StickyVideo = ({
       window.removeEventListener('scroll', handleScroll);
     };
   }, [
-    player,
     sticky,
+    isPlaying,
     width,
     height,
     stickyWidth,
     stickyHeight,
   ]);
 
-  useEffect(() => {
-    const params = {
-      videoId,
-      container: refContainer.current,
-      setPlayer,
-      autoPlay,
-      controls,
-      tracks,
-    };
-    if (player && player.service === service) {
-      if (videoId !== player.videoId) {
-        player.loadVideo(videoId, autoPlay);
-      }
-      return;
-    }
-    switch (service) {
-      case 'youtube':
-        youtube(params);
-        break;
-      default:
-        video(params);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url]);
+  let nodePlayer;
+  switch (service) {
+    case 'youtube':
+      nodePlayer = (
+        <Youtube
+          videoId={videoId}
+          controls={controls}
+          autoPlay={autoPlay}
+          playsInline={playsInline}
+          setPlaying={setPlaying}
+        />
+      );
+      break;
+    case 'facebook':
+      nodePlayer = (
+        <Facebook
+          url={url}
+          width={width}
+          height={height}
+          controls={controls}
+          autoPlay={autoPlay}
+          playsInline={playsInline}
+          setPlaying={setPlaying}
+          config={serviceConfig.facebook}
+        />
+      );
+      break;
+    default:
+      nodePlayer = (
+        <FileSource
+          src={url}
+          controls={controls}
+          autoPlay={autoPlay}
+          playsInline={playsInline}
+          setPlaying={setPlaying}
+        />
+      );
+  }
 
   return (
     <div
@@ -118,42 +133,13 @@ const StickyVideo = ({
           }
         )}
       >
-        {!service && (
-          // eslint-disable-next-line jsx-a11y/media-has-caption
-          <video
-            ref={refPlayer}
-            style={(sticky
-              ? {
-                width: stickyWidth,
-                height: stickyHeight,
-              }
-              : {
-                width,
-                height,
-              }
-            )}
-            src={url}
-            autoPlay={autoPlay}
-            controls={controls}
-          >
-            {tracks.map(({
-              src,
-              srcLang,
-              kind,
-              label,
-              isDefault,
-            }) => (
-              <track
-                src={src}
-                srcLang={srcLang}
-                kind={kind}
-                label={label}
-                default={isDefault}
-                key={src}
-              />
-            ))}
-          </video>
-        )}
+        <div
+          ref={refPlayerContainer}
+          className={styles.playerContainer}
+        >
+          {nodePlayer}
+        </div>
+        <div className={styles.controls} />
       </div>
     </div>
   );
@@ -165,15 +151,7 @@ StickyVideo.propTypes = {
   height: PropTypes.number,
   autoPlay: PropTypes.bool,
   controls: PropTypes.bool,
-  tracks: PropTypes.arrayOf(
-    PropTypes.shape({
-      src: PropTypes.string,
-      srcLang: PropTypes.string,
-      kind: PropTypes.string,
-      label: PropTypes.string,
-      isDefault: PropTypes.bool,
-    }),
-  ),
+  playsInline: PropTypes.bool,
   stickyConfig: PropTypes.shape({
     width: PropTypes.number,
     height: PropTypes.number,
@@ -184,19 +162,23 @@ StickyVideo.propTypes = {
       'bottom-left',
     ]),
   }),
+  serviceConfig: PropTypes.shape({
+    facebook: PropTypes.object,
+  }),
 };
 
 StickyVideo.defaultProps = {
-  tracks: [],
   width: 640,
   height: 360,
   autoPlay: false,
   controls: true,
+  playsInline: true,
   stickyConfig: {
     width: 320,
     height: 180,
     position: 'bottom-right',
   },
+  serviceConfig: {},
 };
 
 export default StickyVideo;

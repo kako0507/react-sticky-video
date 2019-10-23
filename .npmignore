@@ -2,5 +2,6 @@
 yarn-error.log
 yarn.lock
 webpack.config.js
+src
 example
 build
