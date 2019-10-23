@@ -73,9 +73,11 @@ const App = () => {
       setDemoUrl(_.sample(srcs));
     };
     const handleClickDemo = (event) => {
-      updateDemoVideo(event.target.href.split('#')[1]);
-      refVideoContainer.current.scrollIntoView();
-      event.preventDefault();
+      if (event.target.href.indexOf('kako0507') > -1) {
+        updateDemoVideo(event.target.href.split('#')[1]);
+        refVideoContainer.current.scrollIntoView();
+        event.preventDefault();
+      }
     };
 
     updateDemoVideo(window.location.hash);

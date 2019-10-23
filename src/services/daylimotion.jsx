@@ -6,6 +6,7 @@ import React, {
   useEffect,
 } from 'react';
 import PropTypes from 'prop-types';
+import styles from '../styles.scss';
 
 let loaded;
 
@@ -81,7 +82,9 @@ const Dailymotion = ({
   }, [videoId]);
 
   return (
-    <div ref={refPlayer} />
+    <div className={styles.dailymotion}>
+      <div ref={refPlayer} />
+    </div>
   );
 };
 
