@@ -19,21 +19,23 @@ const isPlayed = (state) => (
 const genPlayer = ({
   elemPlayer,
   videoId,
-  autoPlay,
-  controls,
-  playsInline,
+  playerVars: {
+    controls,
+    ...playerVars
+  },
   setPlaying,
   setPlayer,
 }) => {
   const player = new YT.Player(elemPlayer, {
     videoId,
     playerVars: {
+      ...playerVars,
       controls: controls ? 1 : 0,
-      playsinline: playsInline ? 1 : 0,
+      playsinline: 1,
     },
     events: {
       onReady: (event) => {
-        if (autoPlay) {
+        if (playerVars.autoplay) {
           event.target.mute();
           event.target.playVideo();
         }
@@ -53,9 +55,7 @@ const genPlayer = ({
 
 const Youtube = ({
   videoId,
-  controls,
-  autoPlay,
-  playsInline,
+  playerVars,
   setPlaying,
 }) => {
   const [player, setPlayer] = useState(null);
@@ -67,9 +67,7 @@ const Youtube = ({
       const params = {
         elemPlayer: refPlayer.current,
         videoId,
-        controls,
-        autoPlay,
-        playsInline,
+        playerVars,
         setPlaying,
         setPlayer,
       };
@@ -94,7 +92,7 @@ const Youtube = ({
 
   useEffect(() => {
     if (player) {
-      if (autoPlay) {
+      if (playerVars.autoplay) {
         player.loadVideoById(videoId);
       } else {
         player.cueVideoById(videoId);
@@ -108,9 +106,9 @@ const Youtube = ({
 
 Youtube.propTypes = {
   videoId: PropTypes.string.isRequired,
-  controls: PropTypes.bool.isRequired,
-  autoPlay: PropTypes.bool.isRequired,
-  playsInline: PropTypes.bool.isRequired,
+  playerVars: PropTypes.shape({
+    autoplay: PropTypes.bool,
+  }).isRequired,
   setPlaying: PropTypes.func.isRequired,
 };
 

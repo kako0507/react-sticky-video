@@ -22,11 +22,15 @@
   },
   "homepage": "https://github.com/kako0507/react-sticky-video#readme",
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^1.2.25",
+    "@fortawesome/free-solid-svg-icons": "^5.11.2",
+    "@fortawesome/react-fontawesome": "^0.1.7",
     "classnames": "^2.2.6",
-    "get-video-id": "^3.1.4",
+    "js-video-url-parser": "^0.4.0",
     "load-script": "^1.0.0",
     "prop-types": "^15.7.2",
-    "query-string": "^6.8.3"
+    "query-string": "^6.8.3",
+    "rc-slider": "^8.7.1"
   },
   "devDependencies": {
     "@babel/cli": "^7.6.4",

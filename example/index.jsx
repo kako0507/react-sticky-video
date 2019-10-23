@@ -13,7 +13,16 @@ Please play the video and scroll down.
 `;
 
 const fileSrcs = [
-  'trailer_400p.ogg',
+  [
+    {
+      src: 'trailer_400p.ogg',
+      type: 'video/ogg',
+    },
+    {
+      src: 'trailer_480p.mov',
+      type: 'video/mp4',
+    },
+  ],
 ];
 
 const youtubeSrcs = [
@@ -24,19 +33,15 @@ const youtubeSrcs = [
   'https://www.youtube.com/watch?v=LXb3EKWsInQ',
 ];
 
-const facebookSrcs = [
-  'https://www.facebook.com/facebook/videos/10153231379946729/',
-  'https://www.facebook.com/facebook/videos/10157073475131729/',
-  'https://www.facebook.com/facebook/videos/10156384500276729/',
-  'https://www.facebook.com/facebook/videos/405261626724817/',
-  'https://www.facebook.com/facebook/videos/267444427196392/',
-  'https://www.facebook.com/facebook/videos/2194727650806689/',
+const dailymotionSrcs = [
+  'https://www.dailymotion.com/video/x6ok0yz',
+  'https://www.dailymotion.com/video/x5ewub7',
 ];
 
 const allVideoSrcs = _.union(
   fileSrcs,
   youtubeSrcs,
-  facebookSrcs,
+  dailymotionSrcs,
 );
 
 const App = () => {
@@ -56,8 +61,8 @@ const App = () => {
         case 'youtube':
           srcs = youtubeSrcs;
           break;
-        case 'facebook':
-          srcs = facebookSrcs;
+        case 'dailymotion':
+          srcs = dailymotionSrcs;
           break;
         case 'file':
           srcs = fileSrcs;
@@ -91,12 +96,6 @@ const App = () => {
         ? (
           <StickyVideo
             url={demoUrl}
-            autoPlay
-            serviceConfig={{
-              facebook: {
-                appId: '776172449485073',
-              },
-            }}
           />
         )
         : <div />
@@ -106,16 +105,10 @@ const App = () => {
       demoVideoElement = (
         <StickyVideo
           url={demoUrl}
-          autoPlay
           stickyConfig={{
             width: 480,
             height: 270,
             position: 'top-left',
-          }}
-          serviceConfig={{
-            facebook: {
-              appId: '776172449485073',
-            },
           }}
         />
       );

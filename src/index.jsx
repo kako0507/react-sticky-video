@@ -5,25 +5,31 @@ import React, {
 } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
+import urlParser from 'js-video-url-parser/lib/base';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faPlay,
+  faPause,
+} from '@fortawesome/free-solid-svg-icons';
+import 'js-video-url-parser/lib/provider/dailymotion';
+import 'js-video-url-parser/lib/provider/youtube';
+
 import Youtube from './services/youtube';
-import Facebook from './services/facebook';
+import Dailymotion from './services/daylimotion';
 import FileSource from './services/file-source';
-import { isElementInViewport, getVideoInfo } from './utils';
+import { isElementInViewport } from './utils';
 import styles from './styles.scss';
 
 const StickyVideo = ({
   url,
   height,
   width,
-  autoPlay,
-  controls,
-  playsInline,
+  playerVars,
   stickyConfig: {
     width: stickyWidth,
     height: stickyHeight,
     position,
   },
-  serviceConfig,
 }) => {
   const [sticky, setSticky] = useState(false);
   const [isPlaying, setPlaying] = useState(false);
@@ -32,7 +38,13 @@ const StickyVideo = ({
   const refHidden = useRef(null);
   const refPlayerContainer = useRef(null);
 
-  const { id: videoId, service } = getVideoInfo(url);
+  let videoId;
+  let provider;
+  if (typeof url === 'string') {
+    ({ id: videoId, provider } = urlParser.parse(url));
+  } else {
+    provider = 'file';
+  }
 
   useEffect(() => {
     const element = refHidden.current;
@@ -60,39 +72,30 @@ const StickyVideo = ({
   ]);
 
   let nodePlayer;
-  switch (service) {
+  switch (provider) {
     case 'youtube':
       nodePlayer = (
         <Youtube
           videoId={videoId}
-          controls={controls}
-          autoPlay={autoPlay}
-          playsInline={playsInline}
+          playerVars={playerVars}
           setPlaying={setPlaying}
         />
       );
       break;
-    case 'facebook':
+    case 'dailymotion':
       nodePlayer = (
-        <Facebook
-          url={url}
-          width={width}
-          height={height}
-          controls={controls}
-          autoPlay={autoPlay}
-          playsInline={playsInline}
+        <Dailymotion
+          videoId={videoId}
+          playerVars={playerVars}
           setPlaying={setPlaying}
-          config={serviceConfig.facebook}
         />
       );
       break;
     default:
       nodePlayer = (
         <FileSource
-          src={url}
-          controls={controls}
-          autoPlay={autoPlay}
-          playsInline={playsInline}
+          source={url}
+          playerVars={playerVars}
           setPlaying={setPlaying}
         />
       );
@@ -139,19 +142,29 @@ const StickyVideo = ({
         >
           {nodePlayer}
         </div>
-        <div className={styles.controls} />
+        <div className={styles.controls}>
+          <FontAwesomeIcon
+            icon={isPlaying ? faPause : faPlay}
+          />
+          <div />
+          <div />
+        </div>
       </div>
     </div>
   );
 };
 
 StickyVideo.propTypes = {
-  url: PropTypes.string.isRequired,
+  url: PropTypes.oneOfType([
+    PropTypes.array,
+    PropTypes.string,
+  ]).isRequired,
   width: PropTypes.number,
   height: PropTypes.number,
-  autoPlay: PropTypes.bool,
-  controls: PropTypes.bool,
-  playsInline: PropTypes.bool,
+  playerVars: PropTypes.shape({
+    autoplay: PropTypes.bool,
+    controls: PropTypes.bool,
+  }),
   stickyConfig: PropTypes.shape({
     width: PropTypes.number,
     height: PropTypes.number,
@@ -162,23 +175,21 @@ StickyVideo.propTypes = {
       'bottom-left',
     ]),
   }),
-  serviceConfig: PropTypes.shape({
-    facebook: PropTypes.object,
-  }),
 };
 
 StickyVideo.defaultProps = {
   width: 640,
   height: 360,
-  autoPlay: false,
-  controls: true,
-  playsInline: true,
+  playerVars: {
+    autoplay: true,
+    controls: true,
+    iv_load_policy: 3,
+  },
   stickyConfig: {
     width: 320,
     height: 180,
     position: 'bottom-right',
   },
-  serviceConfig: {},
 };
 
 export default StickyVideo;

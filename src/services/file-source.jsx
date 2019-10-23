@@ -6,13 +6,12 @@ import React, {
 import PropTypes from 'prop-types';
 
 const FileSource = ({
-  src,
-  controls,
-  autoPlay,
-  playsInline,
+  source,
+  playerVars,
   setPlaying,
 }) => {
   const refPlayer = useRef(null);
+  const multiSource = Array.isArray(source);
 
   useEffect(() => {
     const elemPlayer = refPlayer.current;
@@ -30,19 +29,40 @@ const FileSource = ({
   return (
     <video
       ref={refPlayer}
-      src={src}
-      controls={controls}
-      autoPlay={autoPlay}
-      playsInline={playsInline}
-    />
+      src={multiSource ? undefined : source}
+      autoPlay={playerVars.autoplay}
+      controls={playerVars.controls}
+      loop={playerVars.loop}
+      muted={playerVars.muted}
+      playsInline
+    >
+      {multiSource && source.map(({ src, type }) => (
+        <source
+          src={src}
+          type={type}
+          key={src}
+        />
+      ))}
+    </video>
   );
 };
 
 FileSource.propTypes = {
-  src: PropTypes.string.isRequired,
-  controls: PropTypes.bool.isRequired,
-  autoPlay: PropTypes.bool.isRequired,
-  playsInline: PropTypes.bool.isRequired,
+  source: PropTypes.oneOfType([
+    PropTypes.string,
+    PropTypes.arrayOf(
+      PropTypes.shape({
+        src: PropTypes.string,
+        type: PropTypes.string,
+      }),
+    ),
+  ]).isRequired,
+  playerVars: PropTypes.shape({
+    autoplay: PropTypes.bool,
+    controls: PropTypes.bool,
+    loop: PropTypes.bool,
+    muted: PropTypes.bool,
+  }).isRequired,
   setPlaying: PropTypes.func.isRequired,
 };
 

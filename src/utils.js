@@ -1,22 +1,4 @@
 import _ from 'lodash';
-import getVideoId from 'get-video-id';
-
-const facebookMatch = /facebook\.com\/(?:video\.php\?v=\d+|.*?\/videos\/\d+)/;
-
-export const getVideoInfo = (url) => {
-  const videoInfo = getVideoId(url);
-  let service;
-  if (videoInfo.service) {
-    return videoInfo;
-  }
-  if (url.match(facebookMatch)) {
-    service = 'facebook';
-  }
-  return {
-    ...videoInfo,
-    service,
-  };
-};
 
 export const setAttributes = (element, attributes) => {
   _.forEach(attributes, (value, key) => {

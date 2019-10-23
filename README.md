@@ -10,15 +10,23 @@ yarn add react-sticky-video
 
 Name | Type | Default | Description
 ---- | ---- | ------- | -----------
-url | string | undefined | The URL of the video to embed. (current supported source: file, Youtube, Facebook)
+url | string | undefined | The URL of the video to embed. (current supported source: file, Youtube, Dailymotion)
 width | number | 640 | The width of the video's display area.
 height | number | 360 | The width of the video's display area.
-autoPlay | boolean | false | If specified, the video automatically begins to play back as soon as it can do so without stopping to finish loading the data.
-controls | boolean | true | If this attribute is present, it will offer controls to allow the user to control video playback.
+playerVars | object | -- | The object's properties identify player parameters that can be used to customize the player
 
 #### Example
 
 ##### File Source - [Demo](http://kako0507.github.io/react-sticky-video/#service=file)
+
+###### Supported playerVars
+
+Name | Type | Default | Description
+---- | ---- | ------- | -----------
+autoplay | bool | false | Specifies that the video will start playing as soon as it is ready
+controls | bool | true | Specifies that video controls should be displayed (such as a play/pause button etc).
+loop | bool | false | Specifies that the video will start over again, every time it is finished
+muted | bool | Specifies that the audio output of the video should be muted
 
 ```js
 import React from 'react';
@@ -33,6 +41,8 @@ const App = () => (
 
 ##### Youtube - [Demo](http://kako0507.github.io/react-sticky-video/#service=youtube)
 
+###### [Supported playerVars](https://developers.google.com/youtube/player_parameters)
+
 ```js
 import React from 'react';
 import StickyVideo from 'react-sticky-video';
@@ -44,8 +54,9 @@ const App = () => (
 );
 ```
 
-##### Facebook - [Demo](http://kako0507.github.io/react-sticky-video/#service=facebook)
+##### Dailymotion - [Demo](http://kako0507.github.io/react-sticky-video/#service=dailymotion)
 
+###### [Supported playerVars](https://developer.dailymotion.com/player/#player-parameters)
 
 ```js
 import React from 'react';
@@ -53,12 +64,7 @@ import StickyVideo from 'react-sticky-video';
 
 const App = () => (
   <StickyVideo
-    url="https://www.facebook.com/XXXXXXXXXXX/videos/XXXXXXXXXXX/"
-    serviceConfig={{
-      facebook: {
-        appId: 'XXXXXXXXXXX',
-      },
-    }}
+    url="https://www.dailymotion.com/video/x5ewub7"
   />
 );
 ```
