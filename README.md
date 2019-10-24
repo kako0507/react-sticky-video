@@ -64,7 +64,7 @@ import StickyVideo from 'react-sticky-video';
 
 const App = () => (
   <StickyVideo
-    url="https://www.dailymotion.com/video/x5ewub7"
+    url="https://www.dailymotion.com/video/XXXXXXX"
   />
 );
 ```

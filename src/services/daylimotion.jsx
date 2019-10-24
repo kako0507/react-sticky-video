@@ -12,6 +12,7 @@ let loaded;
 
 const genPlayer = ({
   elemPlayer,
+  videoId,
   playerVars: {
     autoplay,
     mute,
@@ -24,7 +25,7 @@ const genPlayer = ({
   const handlePauseEvent = setPlaying.bind(null, false);
 
   const player = DM.player(elemPlayer, {
-    video: 'xwr14q',
+    video: videoId,
     width: '100%',
     height: '100%',
     params: {
@@ -55,6 +56,7 @@ const Dailymotion = ({
     if (!player) {
       const params = {
         elemPlayer: refPlayer.current,
+        videoId,
         playerVars,
         setPlaying,
         setPlayer,

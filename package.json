@@ -1,6 +1,6 @@
 {
   "name": "react-sticky-video",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A component for creating sticky and floating video easily.",
   "main": "./dist/index.js",
   "authors": [
@@ -29,8 +29,7 @@
     "js-video-url-parser": "^0.4.0",
     "load-script": "^1.0.0",
     "prop-types": "^15.7.2",
-    "query-string": "^6.8.3",
-    "rc-slider": "^8.7.1"
+    "query-string": "^6.8.3"
   },
   "devDependencies": {
     "@babel/cli": "^7.6.4",

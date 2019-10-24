@@ -5,6 +5,7 @@ import GithubCorner from 'react-github-corner';
 import ReactMarkDown from 'react-markdown';
 import queryString from 'query-string';
 import Readme from '../README.md';
+import Table from './table';
 import StickyVideo from '../src/index';
 
 const md = `
@@ -45,6 +46,7 @@ const allVideoSrcs = _.union(
 );
 
 const App = () => {
+  const [width, setWidth] =useState(0);
   const [demo, setDemo] = useState('');
   const [demoUrl, setDemoUrl] = useState('');
 
@@ -52,6 +54,7 @@ const App = () => {
   let demoVideoElement;
 
   useEffect(() => {
+    const elemVideoContainer = refVideoContainer.current;
     const updateDemoVideo = (hash) => {
       const { video, service } = queryString.parse(hash);
       let srcs;
@@ -75,11 +78,12 @@ const App = () => {
     const handleClickDemo = (event) => {
       if (event.target.href.indexOf('kako0507') > -1) {
         updateDemoVideo(event.target.href.split('#')[1]);
-        refVideoContainer.current.scrollIntoView();
+        elemVideoContainer.scrollIntoView();
         event.preventDefault();
       }
     };
 
+    setWidth(elemVideoContainer.offsetWidth);
     updateDemoVideo(window.location.hash);
 
     document.querySelectorAll('.container.is-small a').forEach((element) => {
@@ -97,6 +101,8 @@ const App = () => {
       demoVideoElement = (demoUrl
         ? (
           <StickyVideo
+            width={width}
+            height={width * 0.5625}
             url={demoUrl}
           />
         )
@@ -107,6 +113,8 @@ const App = () => {
       demoVideoElement = (
         <StickyVideo
           url={demoUrl}
+          width={width}
+          height={width * 0.5625}
           stickyConfig={{
             width: 480,
             height: 270,
@@ -131,12 +139,14 @@ const App = () => {
       <section className="hero is-medium is-primary is-bold">
         <div className="hero-body">
           <div className="container">
-            <h1 className="title is-size-1">
-              React Sticky Video
-            </h1>
-            <h2 className="subtitle">
-              A component for creating sticky and floating video easily.
-            </h2>
+            <div className="columns">
+              <h1 className="title is-size-1">
+                React Sticky Video
+              </h1>
+              <h2 className="subtitle">
+                A component for creating sticky and floating video easily.
+              </h2>
+            </div>
           </div>
         </div>
       </section>
@@ -150,7 +160,13 @@ const App = () => {
         </div>
         <br />
         <div className="container is-small">
-          <ReactMarkDown className="content" source={Readme} />
+          <ReactMarkDown
+            className="content"
+            source={Readme}
+            renderers={{
+              table: Table,
+            }}
+          />
         </div>
       </section>
     </>

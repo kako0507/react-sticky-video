@@ -181,9 +181,8 @@ StickyVideo.defaultProps = {
   width: 640,
   height: 360,
   playerVars: {
-    autoplay: true,
+    autoplay: false,
     controls: true,
-    iv_load_policy: 3,
   },
   stickyConfig: {
     width: 320,

@@ -8,3 +8,7 @@
 @import "../node_modules/bulma/sass/elements/content.sass";
 @import "../node_modules/bulma/sass/elements/button.sass";
 @import "../node_modules/bulma/sass/components/modal.sass";
+
+.container>.content>.table-container {
+  overflow-x: auto;
+}
