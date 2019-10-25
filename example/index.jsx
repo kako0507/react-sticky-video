@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import React, { useState, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
+import useResizeObserver from 'use-resize-observer';
 import GithubCorner from 'react-github-corner';
 import ReactMarkDown from 'react-markdown';
 import queryString from 'query-string';
@@ -29,14 +30,14 @@ const fileSrcs = [
 const youtubeSrcs = [
   'https://www.youtube.com/watch?v=7EIkSKnCW8E',
   'https://www.youtube.com/watch?v=TmubVRCj8Ug',
-  'https://www.youtube.com/watch?v=uC9qU3X1JgM',
   'https://www.youtube.com/watch?v=Bey4XXJAqS8',
   'https://www.youtube.com/watch?v=LXb3EKWsInQ',
 ];
 
 const dailymotionSrcs = [
-  'https://www.dailymotion.com/video/x6ok0yz',
-  'https://www.dailymotion.com/video/x5ewub7',
+  'https://www.dailymotion.com/video/x5slpa7',
+  'https://www.dailymotion.com/video/x2m8jpp',
+  'https://www.dailymotion.com/video/xobru2',
 ];
 
 const allVideoSrcs = _.union(
@@ -46,11 +47,11 @@ const allVideoSrcs = _.union(
 );
 
 const App = () => {
-  const [width, setWidth] =useState(0);
   const [demo, setDemo] = useState('');
   const [demoUrl, setDemoUrl] = useState('');
 
-  const refVideoContainer = useRef(null);
+  const [refVideoContainer, width] = useResizeObserver();
+
   let demoVideoElement;
 
   useEffect(() => {
@@ -83,7 +84,6 @@ const App = () => {
       }
     };
 
-    setWidth(elemVideoContainer.offsetWidth);
     updateDemoVideo(window.location.hash);
 
     document.querySelectorAll('.container.is-small a').forEach((element) => {
@@ -139,14 +139,12 @@ const App = () => {
       <section className="hero is-medium is-primary is-bold">
         <div className="hero-body">
           <div className="container">
-            <div className="columns">
-              <h1 className="title is-size-1">
-                React Sticky Video
-              </h1>
-              <h2 className="subtitle">
-                A component for creating sticky and floating video easily.
-              </h2>
-            </div>
+            <h1 className="title is-size-1">
+              React Sticky Video
+            </h1>
+            <h2 className="subtitle">
+              A component for creating sticky and floating video easily.
+            </h2>
           </div>
         </div>
       </section>
@@ -155,7 +153,10 @@ const App = () => {
           <ReactMarkDown className="content" source={md} />
         </div>
         <br />
-        <div ref={refVideoContainer} className="container is-medium">
+        <div
+          ref={refVideoContainer}
+          className="container video-container is-medium"
+        >
           {demoVideoElement}
         </div>
         <br />

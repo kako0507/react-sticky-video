@@ -1,23 +1,26 @@
 import React, {
   useState,
   useRef,
+  useCallback,
   useEffect,
 } from 'react';
 import PropTypes from 'prop-types';
+import _ from 'lodash';
 import classNames from 'classnames';
 import urlParser from 'js-video-url-parser/lib/base';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faPlay,
-  faPause,
-} from '@fortawesome/free-solid-svg-icons';
 import 'js-video-url-parser/lib/provider/dailymotion';
 import 'js-video-url-parser/lib/provider/youtube';
 
-import Youtube from './services/youtube';
-import Dailymotion from './services/daylimotion';
-import FileSource from './services/file-source';
-import { isElementInViewport } from './utils';
+import Youtube from './providerComponents/youtube';
+import Dailymotion from './providerComponents/dailymotion';
+import FileSource from './providerComponents/file-source';
+import Controls from './components/controls';
+import {
+  isElementInViewport,
+  checkFullScreen,
+  openFullscreen,
+  closeFullscreen,
+} from './utils';
 import styles from './styles.scss';
 
 const StickyVideo = ({
@@ -32,9 +35,14 @@ const StickyVideo = ({
   },
 }) => {
   const [sticky, setSticky] = useState(false);
-  const [isPlaying, setPlaying] = useState(false);
+  const [isShowControls, setShowControls] = useState(false);
+  const [isFullScreen, setFullScreen] = useState(false);
+  const [fullPage, setFullPage] = useState({
+    open: false,
+  });
+  const [playerStatus, setPlayerStatus] = useState({});
+  const [playerControls, setPlayerControls] = useState({});
 
-  const refContainer = useRef(null);
   const refHidden = useRef(null);
   const refPlayerContainer = useRef(null);
 
@@ -46,11 +54,73 @@ const StickyVideo = ({
     provider = 'file';
   }
 
+  const handleHideControls = useCallback(() => {
+    setShowControls(false);
+  }, []);
+
+  const debounceHideControls = useCallback(
+    _.debounce(handleHideControls, 3000),
+    [],
+  );
+
+  const handleShowControls = useCallback(() => {
+    setShowControls(true);
+    debounceHideControls();
+  }, [debounceHideControls]);
+
+  const handlePlayerControl = useCallback((event) => {
+    if (event.type === 'keypress' && event.charCode !== 32) {
+      return;
+    }
+    if (playerStatus.playing) {
+      if (playerControls.pause) {
+        playerControls.pause();
+      }
+    } else {
+      if (playerControls.play) {
+        playerControls.play();
+      }
+      handleShowControls();
+    }
+    event.preventDefault();
+    event.stopPropagation();
+  }, [handleShowControls, playerControls, playerStatus.playing]);
+
+  const handleClickFullscreen = useCallback(() => {
+    const support = openFullscreen(refPlayerContainer.current);
+    if (!support) {
+      setFullPage({
+        open: true,
+        bodyOverflow: document.body.style.overflow,
+        bodyWidth: document.body.style.width,
+        bodyHeight: document.body.style.height,
+      });
+      document.body.style.width = '100vw';
+      document.body.style.height = '100vh';
+      document.body.style.overflow = 'hidden';
+    }
+  }, []);
+
+  const handleCancelFullscreen = useCallback(() => {
+    closeFullscreen();
+    if (fullPage.open) {
+      document.body.style.width = fullPage.bodyWidth;
+      document.body.style.height = fullPage.bodyHeight;
+      document.body.style.overflow = fullPage.bodyOverflow;
+      setFullPage({
+        open: false,
+        bodyWidth: undefined,
+        bodyHeight: undefined,
+        bodyOverflow: undefined,
+      });
+    }
+  }, [fullPage]);
+
   useEffect(() => {
     const element = refHidden.current;
     const handleScroll = () => {
       if (!sticky && !isElementInViewport(element)) {
-        if (isPlaying) {
+        if (playerStatus.playing) {
           setSticky(true);
         }
       }
@@ -58,13 +128,24 @@ const StickyVideo = ({
         setSticky(false);
       }
     };
-    window.addEventListener('scroll', handleScroll);
+    const handleFullScreeChange = () => {
+      setFullScreen(checkFullScreen());
+    };
+    document.addEventListener('scroll', handleScroll);
+    document.addEventListener('fullscreenchange', handleFullScreeChange);
+    document.addEventListener('mozfullscreenchange', handleFullScreeChange);
+    document.addEventListener('webkitfullscreenchange', handleFullScreeChange);
+    document.addEventListener('msfullscreenchange', handleFullScreeChange);
     return () => {
-      window.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('scroll', handleScroll);
+      document.removeEventListener('fullscreenchange', handleFullScreeChange);
+      document.removeEventListener('mozfullscreenchange', handleFullScreeChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullScreeChange);
+      document.removeEventListener('msfullscreenchange', handleFullScreeChange);
     };
   }, [
     sticky,
-    isPlaying,
+    playerStatus.playing,
     width,
     height,
     stickyWidth,
@@ -78,7 +159,8 @@ const StickyVideo = ({
         <Youtube
           videoId={videoId}
           playerVars={playerVars}
-          setPlaying={setPlaying}
+          setPlayerStatus={setPlayerStatus}
+          setPlayerControls={setPlayerControls}
         />
       );
       break;
@@ -87,7 +169,8 @@ const StickyVideo = ({
         <Dailymotion
           videoId={videoId}
           playerVars={playerVars}
-          setPlaying={setPlaying}
+          setPlayerStatus={setPlayerStatus}
+          setPlayerControls={setPlayerControls}
         />
       );
       break;
@@ -96,7 +179,8 @@ const StickyVideo = ({
         <FileSource
           source={url}
           playerVars={playerVars}
-          setPlaying={setPlaying}
+          setPlayerStatus={setPlayerStatus}
+          setPlayerControls={setPlayerControls}
         />
       );
   }
@@ -114,11 +198,14 @@ const StickyVideo = ({
         className={styles.hidden}
       />
       <div
-        ref={refContainer}
+        role="button"
+        tabIndex="0"
+        ref={refPlayerContainer}
         className={classNames(
           styles.player,
           {
-            [styles.sticky]: sticky,
+            [styles.fullPage]: fullPage.open,
+            [styles.sticky]: sticky && !fullPage.open,
             [styles.stTopRight]: position === 'top-right',
             [styles.stTopLeft]: position === 'top-left',
             [styles.stBottomRight]: position === 'bottom-right',
@@ -135,20 +222,35 @@ const StickyVideo = ({
             height,
           }
         )}
+        onFocus={handleShowControls}
+        onMouseMove={handleShowControls}
+        onMouseOver={handleShowControls}
+        onBlur={handleHideControls}
+        onMouseOut={handleHideControls}
       >
         <div
-          ref={refPlayerContainer}
-          className={styles.playerContainer}
+          role="button"
+          tabIndex="0"
+          className={classNames(
+            styles.playerContainer,
+            {
+              [styles.seeking]: playerStatus.seeking || playerStatus.playing,
+            },
+          )}
+          onClick={handlePlayerControl}
+          onKeyPress={handlePlayerControl}
         >
           {nodePlayer}
         </div>
-        <div className={styles.controls}>
-          <FontAwesomeIcon
-            icon={isPlaying ? faPause : faPlay}
-          />
-          <div />
-          <div />
-        </div>
+        <Controls
+          isFullScreen={isFullScreen || fullPage.open}
+          onClickFullscreen={handleClickFullscreen}
+          onCancelFullscreen={handleCancelFullscreen}
+          playerStatus={playerStatus}
+          playerControls={playerControls}
+          setPlayerStatus={setPlayerStatus}
+          show={isShowControls || !playerStatus.playing}
+        />
       </div>
     </div>
   );
@@ -182,7 +284,8 @@ StickyVideo.defaultProps = {
   height: 360,
   playerVars: {
     autoplay: false,
-    controls: true,
+    mute: false,
+    controls: false,
   },
   stickyConfig: {
     width: 320,

@@ -26,7 +26,7 @@ Name | Type | Default | Description
 autoplay | bool | false | Specifies that the video will start playing as soon as it is ready
 controls | bool | true | Specifies that video controls should be displayed (such as a play/pause button etc).
 loop | bool | false | Specifies that the video will start over again, every time it is finished
-muted | bool | Specifies that the audio output of the video should be muted
+muted | bool | false | Specifies that the audio output of the video should be muted
 
 ```js
 import React from 'react';
