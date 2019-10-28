@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import useResizeObserver from 'use-resize-observer';
 import GithubCorner from 'react-github-corner';
@@ -94,7 +94,7 @@ const App = () => {
         element.removeEventListener('click', handleClickDemo);
       });
     };
-  }, []);
+  }, [refVideoContainer]);
 
   switch (demo) {
     case 'simple':

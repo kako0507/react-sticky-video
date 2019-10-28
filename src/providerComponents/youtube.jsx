@@ -13,7 +13,14 @@ const genPlayer = ({
   elemPlayer,
   videoId,
   playerVars,
-  setPlayerStatus,
+  controls,
+  onReady,
+  onTimeUpdate,
+  onPlayChange,
+  onDurationChange,
+  onSeeking,
+  onSetMuted,
+  onSetVolume,
   setPlayerControls,
   setPlayer,
 }) => {
@@ -21,29 +28,27 @@ const genPlayer = ({
     videoId,
     playerVars: {
       ...playerVars,
-      controls: playerVars.controls ? 1 : 0,
+      controls: controls ? 1 : 0,
       playsinline: 1,
+      fs: 0,
+      origin: window.location.origin,
     },
   });
   let timeupdateInterval;
+  let prevPlayerState;
 
   const getLoaded = () => {
     if (player.getVideoLoadedFraction) {
-      const loaded = player.getVideoLoadedFraction();
-      return loaded * 100;
+      return player.getVideoLoadedFraction();
     }
     return undefined;
   };
   const handleReadyEvent = () => {
-    if (playerVars.autoplay) {
-      player.playVideo();
-    }
-
-    setPlayerStatus((playerStatus) => ({
-      ...playerStatus,
+    onReady({
       duration: player.getDuration(),
-    }));
-
+      isMuted: player.isMuted(),
+      volume: player.getVolume() / 100,
+    });
     setPlayerControls((playerControl) => ({
       ...playerControl,
       play: () => {
@@ -52,89 +57,68 @@ const genPlayer = ({
       pause: () => {
         player.pauseVideo();
       },
-      seekTo: (fraction, allowSeekAhead) => {
-        setPlayerStatus((playerStatus) => {
-          if (!playerStatus.seeking) {
-            return playerStatus;
+      seekTo: (fraction) => {
+        onSeeking(fraction, (second, isSeeking, isPlaying) => {
+          player.seekTo(second, !isSeeking);
+          if (!isSeeking && isPlaying) {
+            player.playVideo();
+          } else if (timeupdateInterval) {
+            clearInterval(timeupdateInterval);
           }
-
-          const f = fraction === undefined
-            ? playerStatus.played / 100
-            : fraction;
-          const duration = player.getDuration();
-          const second = duration * f;
-          const seeking = !allowSeekAhead;
-          const played = f * 100;
-          player.seekTo(second, allowSeekAhead);
-          return {
-            ...playerStatus,
-            played,
-            seeking,
-            hovered: seeking ? played : undefined,
-          };
         });
-        if (timeupdateInterval) {
-          clearInterval(timeupdateInterval);
-        }
       },
-      setMuted: (muted) => {
-        if (muted) {
+      setMuted: (isMuted) => {
+        if (isMuted) {
           player.mute();
         } else {
           player.unMute();
         }
-        setPlayerStatus((playerStatus) => ({
-          ...playerStatus,
-          muted,
-        }));
+        onSetMuted(isMuted);
+      },
+      setVolume: (volume) => {
+        player.setVolume(Math.round(volume * 100));
+        if (volume > 0 && player.isMuted()) {
+          player.unMute();
+        }
+        onSetVolume(volume);
       },
     }));
   };
   const handleTimeUpdateEvent = () => {
     const currentTime = player.getCurrentTime();
-    const duration = player.getDuration();
-    if (currentTime && duration) {
-      const played = (currentTime * 100) / duration;
-      const loaded = getLoaded();
-      setPlayerStatus((playerStatus) => {
-        if (playerStatus.seeking) {
-          return playerStatus;
-        }
-        return {
-          ...playerStatus,
-          played,
-          loaded: loaded || playerStatus.loaded,
-        };
-      });
-    }
+    const loaded = getLoaded();
+    onTimeUpdate(currentTime, loaded);
   };
-  const handleStateChange = (event) => {
-    setPlayerStatus((playerStatus) => {
-      let playing = false;
-      let isPlayed;
-      switch (event.data) {
-        case YT.PlayerState.PLAYING:
-          playing = true;
-          isPlayed = true;
-          timeupdateInterval = setInterval(handleTimeUpdateEvent, 100);
-          break;
-        case YT.PlayerState.BUFFERING:
-          playing = true;
-          clearInterval(timeupdateInterval);
-          break;
-        default:
-          clearInterval(timeupdateInterval);
-      }
-      if (playerStatus.seeking) {
-        return playerStatus;
-      }
-      return {
-        ...playerStatus,
-        isPlayed: isPlayed || playerStatus.isPlayed,
-        muted: player.isMuted(),
-        playing,
-      };
-    });
+  const handleStateChange = ({ data: playerState }) => {
+    if (playerState === YT.PlayerState.PLAYING) {
+      timeupdateInterval = setInterval(handleTimeUpdateEvent, 200);
+    } else {
+      clearInterval(timeupdateInterval);
+    }
+    switch (playerState) {
+      case YT.PlayerState.ENDED:
+        onPlayChange(false);
+        break;
+      case YT.PlayerState.PLAYING:
+        onPlayChange(true);
+        break;
+      case YT.PlayerState.PAUSED:
+        onPlayChange(false);
+        break;
+      case YT.PlayerState.BUFFERING:
+        if ([
+          -1,
+          YT.PlayerState.PLAYING,
+        ].indexOf(prevPlayerState) > -1) {
+          onPlayChange(true);
+        }
+        break;
+      case YT.PlayerState.CUED:
+        onDurationChange(player.getDuration());
+        break;
+      default:
+    }
+    prevPlayerState = playerState;
   };
 
   player.addEventListener('onReady', handleReadyEvent);
@@ -144,6 +128,7 @@ const genPlayer = ({
     removeEventListeners: () => {
       player.removeEventListener('onReady', handleReadyEvent);
       player.removeEventListener('onStateChange', handleStateChange);
+      clearInterval(timeupdateInterval);
     },
   });
 };
@@ -151,7 +136,15 @@ const genPlayer = ({
 const Youtube = ({
   videoId,
   playerVars,
-  setPlayerStatus,
+  controls,
+  onReady,
+  onTimeUpdate,
+  onPlayChange,
+  onDurationChange,
+  onSeeking,
+  onSetMuted,
+  onSetVolume,
+  onDestroy,
   setPlayerControls,
 }) => {
   const [player, setPlayer] = useState({});
@@ -164,7 +157,14 @@ const Youtube = ({
         elemPlayer: refPlayer.current,
         videoId,
         playerVars,
-        setPlayerStatus,
+        controls,
+        onReady,
+        onTimeUpdate,
+        onPlayChange,
+        onDurationChange,
+        onSeeking,
+        onSetMuted,
+        onSetVolume,
         setPlayerControls,
         setPlayer,
       };
@@ -183,12 +183,11 @@ const Youtube = ({
       if (player.element) {
         player.removeEventListeners();
         player.element.destroy();
-        setPlayerStatus({});
-        setPlayerControls({});
+        onDestroy();
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [player]);
+  }, [player, playerVars]);
 
   // play another video
   useEffect(() => {
@@ -197,10 +196,6 @@ const Youtube = ({
         player.element.loadVideoById(videoId);
       } else {
         player.element.cueVideoById(videoId);
-        setPlayerStatus((playerStatus) => ({
-          ...playerStatus,
-          isPlayed: false,
-        }));
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -214,7 +209,15 @@ Youtube.propTypes = {
   playerVars: PropTypes.shape({
     autoplay: PropTypes.bool,
   }).isRequired,
-  setPlayerStatus: PropTypes.func.isRequired,
+  controls: PropTypes.bool.isRequired,
+  onReady: PropTypes.func.isRequired,
+  onTimeUpdate: PropTypes.func.isRequired,
+  onPlayChange: PropTypes.func.isRequired,
+  onDurationChange: PropTypes.func.isRequired,
+  onSeeking: PropTypes.func.isRequired,
+  onSetMuted: PropTypes.func.isRequired,
+  onSetVolume: PropTypes.func.isRequired,
+  onDestroy: PropTypes.func.isRequired,
   setPlayerControls: PropTypes.func.isRequired,
 };
 

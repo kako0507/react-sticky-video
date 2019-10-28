@@ -8,7 +8,16 @@ import PropTypes from 'prop-types';
 const FileSource = ({
   source,
   playerVars,
-  setPlayerStatus,
+  controls,
+  onReady,
+  onTimeUpdate,
+  onPlayChange,
+  onProgressUpdate,
+  onDurationChange,
+  onSeeking,
+  onSetMuted,
+  onSetVolume,
+  onDestroy,
   setPlayerControls,
 }) => {
   const refPlayer = useRef(null);
@@ -16,18 +25,12 @@ const FileSource = ({
 
   useEffect(() => {
     const elemPlayer = refPlayer.current;
-    const getLoaded = () => {
-      const { buffered, duration } = elemPlayer;
-      if (buffered.length && duration) {
-        return (elemPlayer.buffered.end(0) * 100) / duration;
-      }
-      return undefined;
-    };
     const handleReadyEvent = () => {
-      setPlayerStatus((playerStatus) => ({
-        ...playerStatus,
+      onReady({
         duration: elemPlayer.duration,
-      }));
+        isMuted: elemPlayer.muted,
+        volume: elemPlayer.volume,
+      });
       setPlayerControls((playerControl) => ({
         ...playerControl,
         play: () => {
@@ -36,92 +39,72 @@ const FileSource = ({
         pause: () => {
           elemPlayer.pause();
         },
-        seekTo: (fraction, allowSeekAhead) => {
-          setPlayerStatus((playerStatus) => {
-            if (!playerStatus.seeking) {
-              return playerStatus;
-            }
-
-            const f = fraction === undefined
-              ? playerStatus.played / 100
-              : fraction;
-            const second = playerStatus.duration * f;
-            const seeking = !allowSeekAhead;
-            const played = f * 100;
+        seekTo: (fraction) => {
+          onSeeking(fraction, (second, isSeeking, isPlaying) => {
             elemPlayer.currentTime = second;
-            if (!elemPlayer.paused) {
+            if (isSeeking && !elemPlayer.paused) {
               elemPlayer.pause();
             }
-            if (!seeking && playerStatus.playing) {
+            if (!isSeeking && isPlaying) {
               elemPlayer.play();
             }
-            return {
-              ...playerStatus,
-              played,
-              seeking,
-              hovered: seeking ? played : undefined,
-            };
           });
+        },
+        setMuted: (isMuted) => {
+          elemPlayer.muted = isMuted;
+          onSetMuted(isMuted);
+        },
+        setVolume: (volume) => {
+          elemPlayer.volume = volume;
+          if (volume > 0 && elemPlayer.muted) {
+            elemPlayer.muted = false;
+          }
+          onSetVolume(volume);
         },
       }));
     };
-    const handleProgressUpdateEvent = () => {
-      const loaded = getLoaded();
-      if (loaded) {
-        setPlayerStatus((playerStatus) => ({
-          ...playerStatus,
-          loaded,
-        }));
-      }
-    };
     const handleTimeUpdateEvent = () => {
-      const { currentTime, duration } = elemPlayer;
-      if (currentTime && duration) {
-        const played = (currentTime * 100) / duration;
-        setPlayerStatus((playerStatus) => ({
-          ...playerStatus,
-          played,
-        }));
-      }
+      onTimeUpdate(elemPlayer.currentTime);
     };
     const handlePlayEvent = () => {
-      setPlayerStatus((playerStatus) => {
-        if (playerStatus.seeking) {
-          return playerStatus;
-        }
-        return {
-          ...playerStatus,
-          playing: true,
-          isPlayed: true,
-        };
-      });
+      onPlayChange(true);
     };
     const handlePauseEvent = () => {
-      setPlayerStatus((playerStatus) => {
-        if (playerStatus.seeking) {
-          return playerStatus;
-        }
-        return {
-          ...playerStatus,
-          playing: false,
-        };
-      });
+      onPlayChange(false);
     };
+    const handleProgressUpdateEvent = () => {
+      const { buffered, duration } = elemPlayer;
+      let loaded = 0;
+      if (buffered.length && duration) {
+        loaded = elemPlayer.buffered.end(0) / duration;
+      }
+      onProgressUpdate(loaded);
+    };
+    const handleDurationChangeEvent = () => {
+      onDurationChange(elemPlayer.duration);
+    };
+
     elemPlayer.addEventListener('canplay', handleReadyEvent);
+    elemPlayer.addEventListener('durationchange', handleDurationChangeEvent);
     elemPlayer.addEventListener('progress', handleProgressUpdateEvent);
     elemPlayer.addEventListener('timeupdate', handleTimeUpdateEvent);
     elemPlayer.addEventListener('play', handlePlayEvent);
     elemPlayer.addEventListener('pause', handlePauseEvent);
     return () => {
+      elemPlayer.removeEventListener('canplay', handleReadyEvent);
+      elemPlayer.removeEventListener('durationchange', handleDurationChangeEvent);
+      elemPlayer.removeEventListener('progress', handleProgressUpdateEvent);
+      elemPlayer.removeEventListener('timeupdate', handleTimeUpdateEvent);
       elemPlayer.removeEventListener('play', handlePlayEvent);
       elemPlayer.removeEventListener('pause', handlePauseEvent);
-      elemPlayer.removeEventListener('timeupdate', handleTimeUpdateEvent);
-      elemPlayer.removeEventListener('progress', handleProgressUpdateEvent);
-      setPlayerStatus({});
-      setPlayerControls({});
+      onDestroy();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    onSetMuted(playerVars.isMuted);
+  }, [onSetMuted, playerVars.isMuted]);
 
   return (
     <video
@@ -129,8 +112,8 @@ const FileSource = ({
       src={multiSource ? undefined : source}
       autoPlay={playerVars.autoplay}
       loop={playerVars.loop}
-      muted={playerVars.muted}
-      controls={playerVars.controls}
+      muted={playerVars.isMuted}
+      controls={controls}
       playsInline
     >
       {multiSource && source.map(({ src, type }) => (
@@ -157,10 +140,18 @@ FileSource.propTypes = {
   playerVars: PropTypes.shape({
     autoplay: PropTypes.bool,
     loop: PropTypes.bool,
-    muted: PropTypes.bool,
-    controls: PropTypes.bool,
+    isMuted: PropTypes.bool,
   }).isRequired,
-  setPlayerStatus: PropTypes.func.isRequired,
+  controls: PropTypes.bool.isRequired,
+  onReady: PropTypes.func.isRequired,
+  onTimeUpdate: PropTypes.func.isRequired,
+  onPlayChange: PropTypes.func.isRequired,
+  onProgressUpdate: PropTypes.func.isRequired,
+  onDurationChange: PropTypes.func.isRequired,
+  onSeeking: PropTypes.func.isRequired,
+  onSetMuted: PropTypes.func.isRequired,
+  onSetVolume: PropTypes.func.isRequired,
+  onDestroy: PropTypes.func.isRequired,
   setPlayerControls: PropTypes.func.isRequired,
 };
 

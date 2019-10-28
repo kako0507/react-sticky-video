@@ -14,9 +14,17 @@ const genPlayer = ({
   elemPlayer,
   videoId,
   playerVars,
-  setPlayer,
-  setPlayerStatus,
+  controls,
+  onReady,
+  onTimeUpdate,
+  onPlayChange,
+  onProgressUpdate,
+  onDurationChange,
+  onSeeking,
+  onSetMuted,
+  onSetVolume,
   setPlayerControls,
+  setPlayer,
 }) => {
   const player = DM.player(elemPlayer, {
     video: videoId,
@@ -25,24 +33,17 @@ const genPlayer = ({
     params: {
       ...playerVars,
       api: 1,
-      controls: false,
+      controls,
       origin: window.location.origin,
     },
   });
 
-  const getLoaded = () => {
-    const { bufferedTime, duration } = player;
-    if (bufferedTime && duration) {
-      return (bufferedTime * 100) / duration;
-    }
-    return undefined;
-  };
   const handleReadyEvent = () => {
-    setPlayerStatus((playerStatus) => ({
-      ...playerStatus,
+    onReady({
       duration: player.duration,
-      muted: player.muted,
-    }));
+      isMuted: player.muted,
+      volume: player.volume,
+    });
     setPlayerControls((playerControl) => ({
       ...playerControl,
       play: () => {
@@ -51,105 +52,71 @@ const genPlayer = ({
       pause: () => {
         player.pause();
       },
-      setMuted: (muted) => {
-        player.setMuted(muted);
-        console.log('setMuted', muted);
-        setPlayerStatus((playerStatus) => ({
-          ...playerStatus,
-          muted,
-        }));
-      },
-      seekTo: (fraction, allowSeekAhead) => {
-        setPlayerStatus((playerStatus) => {
-          if (!playerStatus.seeking) {
-            return playerStatus;
-          }
-
-          const f = fraction === undefined
-            ? playerStatus.played / 100
-            : fraction;
-          const second = playerStatus.duration * f;
-          const seeking = !allowSeekAhead;
-          const played = f * 100;
+      seekTo: (fraction) => {
+        onSeeking(fraction, (second, isSeeking, isPlaying) => {
           player.seek(second);
-          if (!player.paused) {
+          if (isSeeking && !player.paused) {
             player.pause();
           }
-          if (!seeking && playerStatus.playing && player.paused) {
+          if (!isSeeking && isPlaying) {
             player.play();
           }
-          return {
-            ...playerStatus,
-            played,
-            seeking,
-            hovered: seeking ? played : undefined,
-          };
         });
+      },
+      setMuted: (isMuted) => {
+        player.setMuted(isMuted);
+        onSetMuted(isMuted);
+      },
+      setVolume: (volume) => {
+        player.setVolume(volume);
+        if (volume > 0 && player.muted) {
+          player.setMute(false);
+        }
+        onSetVolume(volume);
       },
     }));
   };
-  const handleProgressUpdateEvent = () => {
-    const loaded = getLoaded();
-    if (loaded) {
-      setPlayerStatus((playerStatus) => ({
-        ...playerStatus,
-        loaded,
-        duration: player.duration,
-      }));
-    }
-  };
-  const handleTimeUpdateEvent = (event) => {
-    const { currentTime, duration } = event.target;
-    if (currentTime && duration) {
-      const played = (currentTime * 100) / duration;
-      const loaded = getLoaded(event);
-      setPlayerStatus((playerStatus) => ({
-        ...playerStatus,
-        played,
-        loaded: loaded || playerStatus.loaded,
-      }));
-    }
+  const handleTimeUpdateEvent = () => {
+    onTimeUpdate(player.currentTime);
   };
   const handlePlayEvent = () => {
-    setPlayerStatus((playerStatus) => {
-      if (playerStatus.seeking) {
-        return playerStatus;
-      }
-      return {
-        ...playerStatus,
-        playing: true,
-        isPlayed: true,
-      };
-    });
+    onPlayChange(true);
   };
   const handlePauseEvent = () => {
-    setPlayerStatus((playerStatus) => {
-      if (playerStatus.seeking) {
-        return playerStatus;
-      }
-      return {
-        ...playerStatus,
-        playing: false,
-      };
-    });
+    onPlayChange(false);
+  };
+  const handleProgressUpdate = () => {
+    const {
+      bufferedTime,
+      duration,
+    } = player;
+    let loaded = 0;
+    if (bufferedTime && duration) {
+      loaded = bufferedTime / duration;
+    }
+    onProgressUpdate(loaded);
+  };
+  const handleDurationChange = () => {
+    onDurationChange(player.duration);
   };
 
   player.addEventListener('apiready', handleReadyEvent);
   player.addEventListener('timeupdate', handleTimeUpdateEvent);
-  player.addEventListener('progress', handleProgressUpdateEvent);
   player.addEventListener('play', handlePlayEvent);
   player.addEventListener('pause', handlePauseEvent);
   player.addEventListener('end', handlePauseEvent);
-
+  player.addEventListener('progress', handleProgressUpdate);
+  player.addEventListener('durationchange', handleDurationChange);
   setPlayer({
     element: player,
     removeEventListeners: () => {
       player.removeEventListener('apiready', handleReadyEvent);
       player.removeEventListener('timeupdate', handleTimeUpdateEvent);
-      player.removeEventListener('progress', handleProgressUpdateEvent);
       player.removeEventListener('play', handlePlayEvent);
       player.removeEventListener('pause', handlePauseEvent);
       player.removeEventListener('end', handlePauseEvent);
+      player.removeEventListener('progress', handleProgressUpdate);
+      player.removeEventListener('durationchange', handleDurationChange);
     },
   });
 };
@@ -157,7 +124,16 @@ const genPlayer = ({
 const Dailymotion = ({
   videoId,
   playerVars,
-  setPlayerStatus,
+  controls,
+  onReady,
+  onTimeUpdate,
+  onPlayChange,
+  onProgressUpdate,
+  onDurationChange,
+  onSeeking,
+  onSetMuted,
+  onSetVolume,
+  onDestroy,
   setPlayerControls,
 }) => {
   const [player, setPlayer] = useState({});
@@ -170,7 +146,15 @@ const Dailymotion = ({
         elemPlayer: refPlayer.current,
         videoId,
         playerVars,
-        setPlayerStatus,
+        controls,
+        onReady,
+        onTimeUpdate,
+        onPlayChange,
+        onProgressUpdate,
+        onDurationChange,
+        onSeeking,
+        onSetMuted,
+        onSetVolume,
         setPlayerControls,
         setPlayer,
       };
@@ -190,12 +174,11 @@ const Dailymotion = ({
     return () => {
       if (player.element) {
         player.removeEventListeners();
-        setPlayerStatus({});
-        setPlayerControls({});
+        onDestroy();
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [player]);
+  }, [player, playerVars]);
 
   // play another video
   useEffect(() => {
@@ -204,7 +187,6 @@ const Dailymotion = ({
         ...playerVars,
         video: videoId,
       });
-      setPlayerStatus({});
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [videoId, playerVars]);
@@ -221,7 +203,16 @@ Dailymotion.propTypes = {
   playerVars: PropTypes.shape({
     autoplay: PropTypes.bool,
   }).isRequired,
-  setPlayerStatus: PropTypes.func.isRequired,
+  controls: PropTypes.bool.isRequired,
+  onReady: PropTypes.func.isRequired,
+  onTimeUpdate: PropTypes.func.isRequired,
+  onPlayChange: PropTypes.func.isRequired,
+  onProgressUpdate: PropTypes.func.isRequired,
+  onDurationChange: PropTypes.func.isRequired,
+  onSeeking: PropTypes.func.isRequired,
+  onSetMuted: PropTypes.func.isRequired,
+  onSetVolume: PropTypes.func.isRequired,
+  onDestroy: PropTypes.func.isRequired,
   setPlayerControls: PropTypes.func.isRequired,
 };
 

@@ -2,7 +2,8 @@ import React from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import styles from '../styles.scss';
+import appStyles from '../../styles.scss';
+import styles from './styles.scss';
 
 const IconButton = ({
   icon,
@@ -15,7 +16,7 @@ const IconButton = ({
     className={classNames(
       styles.icon,
       {
-        [styles.hide]: hide,
+        [appStyles.hide]: hide,
       },
     )}
     onClick={onClick}

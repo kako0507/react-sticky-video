@@ -30,6 +30,20 @@ export const isElementInViewport = (element) => {
   return verticalVisible && horizontalVisible;
 };
 
+export const getFractionFromMouseEvent = (element, event) => {
+  const rect = element.getBoundingClientRect();
+  const clientX = event.clientX || event.touches?.[0]?.clientX || 0;
+  const reletiveX = clientX - rect.left + 1;
+  const fraction = reletiveX / rect.width;
+  if (fraction < 0) {
+    return 0;
+  }
+  if (fraction > 1) {
+    return 1;
+  }
+  return fraction;
+};
+
 export const checkFullScreen = () => _.some([
   document.fullScreen,
   document.fullscreen,

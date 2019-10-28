@@ -1,0 +1,88 @@
+@import "../../variables.scss";
+
+.progress-container {
+  height: $progress-height;
+  display: flex;
+  align-items: flex-end;
+  cursor: pointer;
+  touch-action: none;
+  .progress {
+    position: relative;
+    height: $progress-visual-height;
+    width: 100%;
+    &::before {
+      content: "";
+      width: 100%;
+      background-color: $progress-bg-color;
+    }
+    &::after {
+      content: "";
+      position: absolute;
+      top: ($progress-visual-height - $progress-hover-height) / 2;
+      left: 0;
+      width: 100%;
+      height: $progress-hover-height;
+      display: none;
+    }
+  }
+  .tooltip-container {
+    position: absolute;
+    bottom: 6px;
+    text-align: center;
+    .tooltip-text {
+      border-radius: 2px;
+      padding: 5px 9px;
+      color: #fff;
+      background-color: rgba(28,28,28,0.9);
+      display: inline-block;
+    }
+  }
+  .progress::before,
+  .progress-loaded,
+  .progress-hover,
+  .progress-played {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+  }
+  .progress-loaded {
+    background-color: $progress-loaded-color;
+  }
+  .progress-hover {
+    background-color: $progress-hover-color;
+  }
+  .progress-played {
+    background-color: $progress-played-color;
+  }
+  .progress-dot {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: none;
+    &::after {
+      content: "";
+      position: absolute;
+      top: ($progress-hover-visual-height - $progress-dot-height) / 2;
+      right: -$progress-dot-height / 2;
+      height: $progress-dot-height;
+      width: $progress-dot-height;
+      background-color: $progress-played-color;
+      border-radius: 50%;
+      display: inline-block; 
+    }
+  }
+  &:hover {
+    .progress::before,
+    .progress-loaded,
+    .progress-hover,
+    .progress-played {
+      top: ($progress-visual-height - $progress-hover-visual-height) / 2;
+      height: $progress-hover-visual-height;
+    }
+    .progress::after,
+    .progress-dot {
+      display: block;
+    }
+  }
+}
