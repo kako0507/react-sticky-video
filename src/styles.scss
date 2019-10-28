@@ -1,3 +1,5 @@
+@import "./variables.scss";
+
 @keyframes fade-in {
   0% {
     opacity: 0;
@@ -8,9 +10,20 @@
   }
 }
 
+.hide {
+  display: none !important;
+}
+
 .container {
   position: relative;
   margin: 0 auto;
+  font-size: 13px;
+  -webkit-touch-callout:none;
+  -webkit-user-select:none;
+  -khtml-user-select:none;
+  -moz-user-select:none;
+  -ms-user-select:none;
+  user-select:none;
 
   .hidden {
     position: absolute;
@@ -18,11 +31,13 @@
     left: 0;
     width: 100%;
     height: 100%;
+    border: 1px solid #eee;
+    z-index: 0;
     pointer-events: none;
   }
 
-
   .player-container {
+    outline: none;
     >div,
     >video,
     >.dailymotion,
@@ -31,50 +46,51 @@
       height: 100%;
       outline: none;
     }
+    &.seeking iframe {
+      pointer-events: none;
+    }
   }
 
   >.sticky {
     &.player {
       position: fixed;
-      z-index: 1001;
+      z-index: $player-z;
       animation: fade-in .5s ease forwards;
 
       &.st-top-right {
-        top: 20px;
-        right: 20px;
+        top: $sticky-padding;
+        right: $sticky-padding;
         transform: translateY(-100%);
       }
       &.st-top-left {
-          top: 20px;
-          left: 20px;
+          top: $sticky-padding;
+          left: $sticky-padding;
           transform: translateY(-100%);
       }
       &.st-bottom-right {
-        right: 20px;
-        bottom: 20px;
+        right: $sticky-padding;
+        bottom: $sticky-padding;
         transform: translateY(100%);
       }
       &.st-bottom-left {
-        bottom: 20px;
-        left: 20px;
+        bottom: $sticky-padding;
+        left: $sticky-padding;
         transform: translateY(100%);
       }
     }
   }
-  >.player>.controls {
-    position: absolute;
-    bottom: 0;
+
+  >.full-page {
+    position: fixed;
+    top: 0;
     left: 0;
-    z-index: 2001;
-    width: 100%;
-    height: 56px;
-    background-color: #fff; // rgba(0, 0, 0, 0.2);
-    flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    display: none;
+    z-index: $player-z;
+    width: 100% !important;
+    height: 100% !important;
+    background-color: #000;
   }
-  >.player:hover>.controls {
-    display: none;
+
+  >.player {
+    outline: none;
   }
 }

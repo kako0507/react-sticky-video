@@ -14,6 +14,7 @@ url | string | undefined | The URL of the video to embed. (current supported sou
 width | number | 640 | The width of the video's display area.
 height | number | 360 | The width of the video's display area.
 playerVars | object | -- | The object's properties identify player parameters that can be used to customize the player
+originalControls | bool | false | Use original video controls UI.
 
 #### Example
 
@@ -24,9 +25,8 @@ playerVars | object | -- | The object's properties identify player parameters th
 Name | Type | Default | Description
 ---- | ---- | ------- | -----------
 autoplay | bool | false | Specifies that the video will start playing as soon as it is ready
-controls | bool | true | Specifies that video controls should be displayed (such as a play/pause button etc).
 loop | bool | false | Specifies that the video will start over again, every time it is finished
-muted | bool | Specifies that the audio output of the video should be muted
+muted | bool | false | Specifies that the audio output of the video should be muted
 
 ```js
 import React from 'react';

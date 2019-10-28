@@ -1,0 +1,20 @@
+@import "../../variables.scss";
+
+.icon {
+  width: $icon-button-width;
+  height: 100%;
+  border: none;
+  padding: $icon-button-padding;
+  font-size: $icon-button-size;
+  color: $icon-button-color;
+  background-color: transparent;
+  outline: none;
+  cursor: pointer;
+  vertical-align: middle;
+  box-sizing: border-box;
+  display: inline-block;
+  touch-action: none;
+  &[disabled] {
+    cursor: not-allowed;
+  }
+}

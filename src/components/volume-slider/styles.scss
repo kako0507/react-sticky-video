@@ -1,0 +1,58 @@
+@import "../../variables.scss";
+
+.container {
+  >button,
+  >.slider-panel {
+    vertical-align: middle;
+  }
+  >.slider-panel {
+    display: inline-block;
+    width: 0;
+    height: 100%;
+    transition:
+      margin .2s cubic-bezier(0.4,0.0,1,1),
+      width .2s cubic-bezier(0.4,0.0,1,1);
+    cursor: pointer;
+    outline: 0;
+    touch-action: none;
+    &.active {
+      width: $volume-slider-width + $volume-slider-diameter;
+      margin-right: 3px;
+      transition:
+        margin .2s cubic-bezier(0.0,0.0,0.2,1),
+        width .2s cubic-bezier(0.0,0.0,0.2,1);
+    }
+    >.slider {
+      height: 100%;
+      position: relative;
+      overflow: hidden;
+      >.slider-handle {
+        position: absolute;
+        top: 50%;
+        width: $volume-slider-diameter;
+        height: $volume-slider-diameter;
+        border-radius: $volume-slider-diameter / 2;
+        margin-top: -$volume-slider-diameter / 2;
+        background: #fff;
+        &::before,
+        &::after {
+          content: "";
+          position: absolute;
+          display: block;
+          top: 50%;
+          width: $volume-slider-width + $volume-slider-diameter;
+          height: $volume-slider-height;
+          margin-top: -$volume-slider-height / 2;
+        }
+        &::before {
+          left: -$volume-slider-width - ($volume-slider-diameter / 2);
+          background-color: $volume-slider-color;
+        }
+        &::after {
+          left: $volume-slider-diameter / 2;
+          background-color: $volume-slider-bg-color;      
+        }
+      }
+    }
+  }
+}
