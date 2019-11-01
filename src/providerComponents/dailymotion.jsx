@@ -5,6 +5,7 @@ import React, {
   useRef,
   useEffect,
 } from 'react';
+import useDeepCompareEffect from 'use-deep-compare-effect';
 import PropTypes from 'prop-types';
 import styles from '../styles.scss';
 
@@ -180,8 +181,8 @@ const Dailymotion = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player, playerVars]);
 
-  // play another video
-  useEffect(() => {
+  // play another video or update playerVars
+  useDeepCompareEffect(() => {
     if (player.element) {
       player.element.load({
         ...playerVars,

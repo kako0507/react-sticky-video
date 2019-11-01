@@ -105,6 +105,17 @@ const App = () => {
             width={width}
             height={width * 0.5625}
             url={demoUrl}
+            captions={[
+              {
+                src: 'test.vtt',
+                label: 'English',
+              },
+              {
+                src: 'test2.vtt',
+                label: '中文',
+                default: true,
+              },
+            ]}
           />
         )
         : <div />

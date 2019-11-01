@@ -14,7 +14,9 @@ import 'js-video-url-parser/lib/provider/youtube';
 import Youtube from './providerComponents/youtube';
 import Dailymotion from './providerComponents/dailymotion';
 import FileSource from './providerComponents/file-source';
+import Track from './components/track';
 import Controls from './components/controls';
+import CaptionSetting from './components/caption-setting';
 import {
   isElementInViewport,
   checkFullScreen,
@@ -28,6 +30,7 @@ const StickyVideo = ({
   height,
   width,
   playerVars,
+  captions,
   stickyConfig: {
     width: stickyWidth,
     height: stickyHeight,
@@ -35,18 +38,20 @@ const StickyVideo = ({
   },
   originalControls,
 }) => {
-  const [sticky, setSticky] = useState(false);
-  const [isShowControls, setShowControls] = useState(false);
+  const [isSticky, setSticky] = useState(false);
+  const [isFocusPlayer, setFocusPlayer] = useState(false);
   const [isFullScreen, setFullScreen] = useState(false);
   const [fullPage, setFullPage] = useState({
     open: false,
   });
   const [playerStatus, setPlayerStatus] = useState({});
   const [playerControls, setPlayerControls] = useState({});
+  const [selectedCaption, setSelectedCaption] = useState('');
 
   const {
     isSeeking,
     isSettingVolume,
+    currentTime,
   } = playerStatus;
 
   const {
@@ -55,6 +60,8 @@ const StickyVideo = ({
 
   const refHidden = useRef(null);
   const refPlayerContainer = useRef(null);
+
+  const isShowControls = isFocusPlayer || !playerStatus.isPlaying;
 
   let videoId;
   let provider;
@@ -66,7 +73,7 @@ const StickyVideo = ({
 
   const handleHideControls = useCallback(() => {
     if (!isSeeking && !isSettingVolume) {
-      setShowControls(false);
+      setFocusPlayer(false);
     }
   }, [isSeeking, isSettingVolume]);
   const debounceHideControls = useCallback(
@@ -74,7 +81,7 @@ const StickyVideo = ({
     [],
   );
   const handleShowControls = useCallback(() => {
-    setShowControls(true);
+    setFocusPlayer(true);
     debounceHideControls();
   }, [debounceHideControls]);
   const handlePlayerControl = useCallback((event) => {
@@ -129,16 +136,15 @@ const StickyVideo = ({
       ...status,
     }));
   }, []);
-  const handleTimeUpdate = useCallback((currentTime, loaded) => {
+  const handleTimeUpdate = useCallback((time, loaded) => {
     setPlayerStatus((ps) => {
       const { duration } = ps;
-      if (!currentTime || !duration || ps.isSeeking) {
+      if (!time || !duration || ps.isSeeking) {
         return ps;
       }
-      const played = currentTime / duration;
       return {
         ...ps,
-        played,
+        currentTime: time,
         loaded: loaded || ps.loaded,
       };
     });
@@ -169,17 +175,16 @@ const StickyVideo = ({
   }, []);
   const handleSeeking = useCallback((fraction, handler) => {
     setPlayerStatus((ps) => {
-      const played = fraction === undefined
-        ? ps.played
-        : fraction;
-      const second = ps.duration * played;
+      const time = fraction === undefined
+        ? ps.currentTime
+        : ps.duration * fraction;
       const seeking = !!fraction;
-      handler(second, seeking, ps.isPlaying);
+      handler(time, seeking, ps.isPlaying);
       return {
         ...ps,
-        played,
         isSeeking: seeking,
-        hovered: seeking ? played : undefined,
+        currentTime: time,
+        hoveredTime: seeking ? time : undefined,
       };
     });
   }, []);
@@ -205,17 +210,17 @@ const StickyVideo = ({
   useEffect(() => {
     const element = refHidden.current;
     const handleScroll = () => {
-      if (!sticky && !isElementInViewport(element)) {
+      if (!isSticky && !isElementInViewport(element)) {
         if (playerStatus.isPlaying) {
           setSticky(true);
         }
       }
-      if (sticky && isElementInViewport(element)) {
+      if (isSticky && isElementInViewport(element)) {
         setSticky(false);
       }
     };
     const handleMouseUp = (event) => {
-      if (!isShowControls) {
+      if (!isFocusPlayer) {
         return;
       }
       if (isSeeking) {
@@ -251,13 +256,13 @@ const StickyVideo = ({
       document.removeEventListener('msfullscreenchange', handleFullScreeChange);
     };
   }, [
-    sticky,
+    isSticky,
     playerStatus.isPlaying,
     width,
     height,
     stickyWidth,
     stickyHeight,
-    isShowControls,
+    isFocusPlayer,
     seekTo,
     isSeeking,
     isSettingVolume,
@@ -351,14 +356,14 @@ const StickyVideo = ({
           styles.player,
           {
             [styles.fullPage]: fullPage.open,
-            [styles.sticky]: sticky && !fullPage.open,
+            [styles.sticky]: isSticky && !fullPage.open,
             [styles.stTopRight]: position === 'top-right',
             [styles.stTopLeft]: position === 'top-left',
             [styles.stBottomRight]: position === 'bottom-right',
             [styles.stBottomLeft]: position === 'bottom-left',
           },
         )}
-        style={(sticky
+        style={(isSticky
           ? {
             width: stickyWidth,
             height: stickyHeight,
@@ -400,9 +405,26 @@ const StickyVideo = ({
             playerStatus={playerStatus}
             playerControls={playerControls}
             setPlayerStatus={setPlayerStatus}
-            show={isShowControls || !playerStatus.isPlaying}
+            captions={captions}
+            selectedCaption={selectedCaption}
+            setSelectedCaption={setSelectedCaption}
+            show={isShowControls}
           />
         )}
+        {selectedCaption && captions?.length > 0 && (
+          <Track
+            isShowControls={isShowControls}
+            isSticky={isSticky}
+            currentTime={currentTime}
+            captions={captions}
+            selectedCaption={selectedCaption}
+          />
+        )}
+        <CaptionSetting
+          captions={captions}
+          selectedCaption={selectedCaption}
+          setSelectedCaption={setSelectedCaption}
+        />
       </div>
     </div>
   );
@@ -418,6 +440,9 @@ StickyVideo.propTypes = {
   playerVars: PropTypes.shape({
     autoplay: PropTypes.bool,
   }),
+  captions: PropTypes.arrayOf(
+    PropTypes.object,
+  ),
   stickyConfig: PropTypes.shape({
     width: PropTypes.number,
     height: PropTypes.number,
@@ -438,6 +463,7 @@ StickyVideo.defaultProps = {
     autoplay: false,
     mute: false,
   },
+  captions: [],
   stickyConfig: {
     width: 320,
     height: 180,

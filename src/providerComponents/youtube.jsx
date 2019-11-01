@@ -6,6 +6,7 @@ import React, {
   useEffect,
 } from 'react';
 import PropTypes from 'prop-types';
+import useDeepCompareEffect from 'use-deep-compare-effect';
 
 let libLoaded;
 
@@ -151,7 +152,7 @@ const Youtube = ({
   const refPlayer = useRef(null);
 
   // create/destory the youtube player
-  useEffect(() => {
+  useDeepCompareEffect(() => {
     if (!player.element) {
       const params = {
         elemPlayer: refPlayer.current,

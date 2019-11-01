@@ -103,8 +103,8 @@ const FileSource = ({
   }, []);
 
   useEffect(() => {
-    onSetMuted(playerVars.isMuted);
-  }, [onSetMuted, playerVars.isMuted]);
+    onSetMuted(playerVars.muted);
+  }, [onSetMuted, playerVars.muted]);
 
   return (
     <video
@@ -112,7 +112,7 @@ const FileSource = ({
       src={multiSource ? undefined : source}
       autoPlay={playerVars.autoplay}
       loop={playerVars.loop}
-      muted={playerVars.isMuted}
+      muted={playerVars.muted}
       controls={controls}
       playsInline
     >
@@ -140,7 +140,7 @@ FileSource.propTypes = {
   playerVars: PropTypes.shape({
     autoplay: PropTypes.bool,
     loop: PropTypes.bool,
-    isMuted: PropTypes.bool,
+    muted: PropTypes.bool,
   }).isRequired,
   controls: PropTypes.bool.isRequired,
   onReady: PropTypes.func.isRequired,

@@ -8,6 +8,7 @@ import {
   faPause,
   faExpand,
   faCompress,
+  faClosedCaptioning,
 } from '@fortawesome/free-solid-svg-icons';
 import PlayCircle from '../play-circle';
 import ProgressBar from '../progress-bar';
@@ -30,7 +31,7 @@ const Controls = ({
     hasPlayed,
     isPlaying,
     isSettingVolume,
-    played,
+    currentTime,
     duration,
     isMuted,
     volume,
@@ -48,8 +49,13 @@ const Controls = ({
     [appStyles.hide]: !hasPlayed || !show,
   };
 
-  const handleChangeHoveredTime = useCallback((hovered) => {
-    setPlayerStatus((ps) => ({ ...ps, hovered }));
+  const handleChangeHoveredTime = useCallback((fraction) => {
+    setPlayerStatus((ps) => ({
+      ...ps,
+      hoveredTime: fraction === undefined
+        ? undefined
+        : ps.duration * fraction,
+    }));
   }, [setPlayerStatus]);
   const handleChangeSeeking = useCallback((isSeeking) => {
     setPlayerStatus((ps) => ({ ...ps, isSeeking }));
@@ -109,10 +115,14 @@ const Controls = ({
             onChangeVolume={handleChangeVolume}
           />
           <Timer
-            played={played}
+            currentTime={currentTime}
             duration={duration}
           />
           <div className={styles.flex1} />
+          <IconButton
+            icon={faClosedCaptioning}
+            onClick={() => {}}
+          />
           <IconButton
             icon={faExpand}
             hide={isFullScreen}
@@ -138,9 +148,9 @@ Controls.propTypes = {
     hasPlayed: PropTypes.bool,
     isPlaying: PropTypes.bool,
     isSettingVolume: PropTypes.bool,
+    currentTime: PropTypes.number,
+    hoveredTime: PropTypes.number,
     duration: PropTypes.number,
-    hovered: PropTypes.number,
-    played: PropTypes.number,
     isMuted: PropTypes.bool,
     volume: PropTypes.number,
   }).isRequired,

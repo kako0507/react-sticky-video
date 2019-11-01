@@ -7,14 +7,14 @@ import {
 import appStyles from '../../styles.scss';
 import styles from './styles.scss';
 
-const Timer = ({
-  played,
+const CaptionSetting = ({
+  currentTime,
   duration,
 }) => {
   let timeStringDuration;
   let timeStringPlayed;
   if (duration !== undefined) {
-    timeStringPlayed = getTimeStringFromSeconds(Math.round(duration * (played || 0)));
+    timeStringPlayed = getTimeStringFromSeconds(Math.round(currentTime || 0));
     timeStringDuration = getTimeStringFromSeconds(Math.round(duration));
   }
   return (
@@ -37,14 +37,14 @@ const Timer = ({
   );
 };
 
-Timer.propTypes = {
-  played: PropTypes.number,
+CaptionSetting.propTypes = {
+  currentTime: PropTypes.number,
   duration: PropTypes.number,
 };
 
-Timer.defaultProps = {
-  played: undefined,
+CaptionSetting.defaultProps = {
+  currentTime: undefined,
   duration: undefined,
 };
 
-export default Timer;
+export default CaptionSetting;

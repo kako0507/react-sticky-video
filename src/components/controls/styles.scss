@@ -21,7 +21,7 @@
   box-sizing: border-box;
 
   >.buttons {
-    height: 38px;
+    height:  $controls-visual-height - $progress-visual-height;
     display: flex;
     flex-direction: row;
     justify-content: center;
