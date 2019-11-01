@@ -14,6 +14,14 @@ module.exports = (env, argv) => ({
   output: {
     path: path.join(__dirname, argv.example ? 'build' : 'dist'),
     filename: 'index.js',
+    ...(
+      argv.example
+        ? {}
+        : {
+          library: 'StickyVideo',
+          libraryTarget: 'umd',
+        }
+    ),
   },
   externals: argv.example
     ? []
@@ -24,14 +32,6 @@ module.exports = (env, argv) => ({
           commonjs2: 'react',
           commonjs: 'react',
           amd: 'react',
-        },
-      },
-      {
-        'react-dom': {
-          root: 'ReactDOM',
-          commonjs2: 'react-dom',
-          commonjs: 'react-dom',
-          amd: 'react-dom',
         },
       },
     ],
@@ -48,24 +48,14 @@ module.exports = (env, argv) => ({
       {
         test: /\.css$/,
         use: [
-          ...(argv.example
-            ? [
-              MiniCssExtractPlugin.loader,
-            ]
-            : []
-          ),
+          MiniCssExtractPlugin.loader,
           { loader: 'css-loader' },
         ],
       },
       {
         test: /\.scss$/,
         use: [
-          ...(argv.example
-            ? [
-              MiniCssExtractPlugin.loader,
-            ]
-            : []
-          ),
+          MiniCssExtractPlugin.loader,
           {
             loader: 'css-loader',
             options: {
@@ -81,7 +71,6 @@ module.exports = (env, argv) => ({
             options: {
               sassOptions: {
                 outputStyle: 'expanded',
-                url: false,
               },
             },
           },
@@ -89,22 +78,24 @@ module.exports = (env, argv) => ({
       },
     ],
   },
-  plugins: argv.example
-    ? [
-      new HtmlWebpackPlugin({
-        template: path.join(__dirname, 'example/index.template.html'),
-        minify: {
-          removeComments: true,
-        },
-      }),
-      new MiniCssExtractPlugin({
-        // Options similar to the same options in webpackOptions.output
-        // both options are optional
-        filename: 'css/[name].css',
-        chunkFilename: 'css/[id].css',
-      }),
-    ]
-    : [],
+  plugins: [
+    ...(argv.example
+      ? [
+        new HtmlWebpackPlugin({
+          template: path.join(__dirname, 'example/index.template.html'),
+          minify: {
+            removeComments: true,
+          },
+        }),
+      ]
+      : []
+    ),
+    new MiniCssExtractPlugin({
+      // Options similar to the same options in webpackOptions.output
+      // both options are optional
+      filename: 'index.css',
+    }),
+  ],
   stats: {
     colors: true,
   },

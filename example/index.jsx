@@ -7,7 +7,8 @@ import ReactMarkDown from 'react-markdown';
 import queryString from 'query-string';
 import Readme from '../README.md';
 import Table from './table';
-import StickyVideo from '../src/index';
+import StickyVideo from '../dist';
+import '../dist/index.css';
 
 const md = `
 ## Demo

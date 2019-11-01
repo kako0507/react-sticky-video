@@ -31,6 +31,7 @@ muted | bool | false | Specifies that the audio output of the video should be mu
 ```js
 import React from 'react';
 import StickyVideo from 'react-sticky-video';
+import 'react-sticky-video/dist/index.css';
 
 const App = () => (
   <StickyVideo
@@ -46,6 +47,7 @@ const App = () => (
 ```js
 import React from 'react';
 import StickyVideo from 'react-sticky-video';
+import 'react-sticky-video/dist/index.css';
 
 const App = () => (
   <StickyVideo
@@ -61,6 +63,7 @@ const App = () => (
 ```js
 import React from 'react';
 import StickyVideo from 'react-sticky-video';
+import 'react-sticky-video/dist/index.css';
 
 const App = () => (
   <StickyVideo
@@ -81,6 +84,7 @@ position | oneOf(\['top-right', 'top-left', 'bottom-right', 'bottom-left'\]) | '
 ```js
 import React from 'react';
 import StickyVideo from 'react-sticky-video';
+import 'react-sticky-video/dist/index.css';
 
 const App = () => (
   <StickyVideo
