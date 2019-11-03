@@ -1,8 +1,15 @@
 import _ from 'lodash';
-import React, { useState, useRef, useEffect } from 'react';
+import React, {
+  useContext,
+  useRef,
+  useCallback,
+  useEffect,
+} from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import vtt from 'vtt.js';
+import t from '../../constants/actionTypes';
+import Store from '../../store';
 import styles from './styles.scss';
 
 const { WebVTT, VTTCue } = vtt;
@@ -36,13 +43,13 @@ const renderCues = (
     let selectedCues = selected.cues;
     if (isHeightChanged) {
       selectedCues = parseCues(selected.text);
-      setCues((c) => ({
-        ...c,
-        [selectedCaption]: {
+      setCues(
+        selectedCaption,
+        {
           cues: selectedCues,
           text: selected.text,
         },
-      }));
+      );
     }
     const cue = _.filter(selectedCues, (c) => _.every([
       c.startTime < currentTime,
@@ -63,9 +70,21 @@ const Track = ({
   currentTime,
   selectedCaption,
 }) => {
-  const [cues, setCues] = useState({});
-
+  const {
+    state: { vttCues },
+    dispatch,
+  } = useContext(Store);
   const refTrack = useRef(null);
+
+  const setCues = useCallback((label, data) => {
+    dispatch({
+      type: t.SET_WEBVTT_CUES,
+      data: {
+        [label]: data,
+      },
+    });
+  }, [dispatch]);
+
   useEffect(() => {
     captions.forEach((caption) => {
       const request = new XMLHttpRequest();
@@ -79,37 +98,38 @@ const Track = ({
         if (request.readyState === 4 && request.status === 200) {
           const type = request.getResponseHeader('Content-Type');
           if (type.indexOf('text') !== 1) {
-            setCues((t) => ({
-              ...t,
-              [caption.label]: {
+            setCues(
+              caption.label,
+              {
                 cues: parseCues(request.responseText),
                 text: request.responseText,
               },
-            }));
+            );
           }
         }
       };
     });
-  }, [captions]);
+  }, [captions, setCues]);
 
   useEffect(() => {
     renderCues(
       refTrack.current,
-      cues,
+      vttCues,
       setCues,
       selectedCaption,
       currentTime,
     );
   }, [
-    cues,
-    currentTime,
+    vttCues,
+    setCues,
     selectedCaption,
+    currentTime,
   ]);
 
   useEffect(() => {
     renderCues(
       refTrack.current,
-      cues,
+      vttCues,
       setCues,
       selectedCaption,
       currentTime,
@@ -137,7 +157,7 @@ const Track = ({
 
 Track.propTypes = {
   isShowControls: PropTypes.bool.isRequired,
-  isSticky: PropTypes.bool.isRequired,
+  isSticky: PropTypes.bool,
   currentTime: PropTypes.number,
   captions: PropTypes.arrayOf(PropTypes.shape({
     src: PropTypes.string,
@@ -146,6 +166,7 @@ Track.propTypes = {
 };
 
 Track.defaultProps = {
+  isSticky: false,
   currentTime: 0,
 };
 

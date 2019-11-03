@@ -1,12 +1,15 @@
 /* global YT */
 import load from 'load-script';
 import React, {
+  useContext,
   useState,
   useRef,
   useEffect,
 } from 'react';
 import PropTypes from 'prop-types';
 import useDeepCompareEffect from 'use-deep-compare-effect';
+import t from '../constants/actionTypes';
+import Store from '../store';
 
 let libLoaded;
 
@@ -15,14 +18,7 @@ const genPlayer = ({
   videoId,
   playerVars,
   controls,
-  onReady,
-  onTimeUpdate,
-  onPlayChange,
-  onDurationChange,
-  onSeeking,
-  onSetMuted,
-  onSetVolume,
-  setPlayerControls,
+  dispatch,
   setPlayer,
 }) => {
   const player = new YT.Player(elemPlayer, {
@@ -33,62 +29,81 @@ const genPlayer = ({
       playsinline: 1,
       fs: 0,
       origin: window.location.origin,
+      cc_load_policy: 3,
     },
   });
   let timeupdateInterval;
   let prevPlayerState;
 
-  const getLoaded = () => {
-    if (player.getVideoLoadedFraction) {
-      return player.getVideoLoadedFraction();
-    }
-    return undefined;
-  };
   const handleReadyEvent = () => {
-    onReady({
-      duration: player.getDuration(),
-      isMuted: player.isMuted(),
-      volume: player.getVolume() / 100,
-    });
-    setPlayerControls((playerControl) => ({
-      ...playerControl,
-      play: () => {
-        player.playVideo();
-      },
-      pause: () => {
-        player.pauseVideo();
-      },
-      seekTo: (fraction) => {
-        onSeeking(fraction, (second, isSeeking, isPlaying) => {
-          player.seekTo(second, !isSeeking);
-          if (!isSeeking && isPlaying) {
+    dispatch({
+      type: t.CREATE_PLAYER,
+      data: {
+        playerStatus: {
+          duration: player.getDuration(),
+          isMuted: player.isMuted(),
+          volume: player.getVolume() / 100,
+        },
+        playerControls: {
+          play: () => {
             player.playVideo();
-          } else if (timeupdateInterval) {
-            clearInterval(timeupdateInterval);
-          }
-        });
+          },
+          pause: () => {
+            player.pauseVideo();
+          },
+          seekTo: (fraction) => {
+            dispatch({
+              type: t.SEEK_TO_FRACTION,
+              data: {
+                fraction,
+                handler: (second, isSeeking, isPlaying) => {
+                  player.seekTo(second, !isSeeking);
+                  if (!isSeeking && isPlaying) {
+                    player.playVideo();
+                  } else if (timeupdateInterval) {
+                    clearInterval(timeupdateInterval);
+                  }
+                },
+              },
+            });
+          },
+          setMuted: (isMuted) => {
+            if (isMuted) {
+              player.mute();
+            } else {
+              player.unMute();
+            }
+            dispatch({
+              type: t.SET_MUTE,
+              data: isMuted,
+            });
+          },
+          setVolume: (volume) => {
+            if (volume !== undefined) {
+              player.setVolume(Math.round(volume * 100));
+              if (volume > 0 && player.muted) {
+                player.unMute();
+              }
+            }
+            dispatch({
+              type: t.SET_VOLUME,
+              data: volume,
+            });
+          },
+        },
       },
-      setMuted: (isMuted) => {
-        if (isMuted) {
-          player.mute();
-        } else {
-          player.unMute();
-        }
-        onSetMuted(isMuted);
-      },
-      setVolume: (volume) => {
-        player.setVolume(Math.round(volume * 100));
-        if (volume > 0 && player.isMuted()) {
-          player.unMute();
-        }
-        onSetVolume(volume);
-      },
-    }));
+    });
   };
   const handleTimeUpdateEvent = () => {
-    const currentTime = player.getCurrentTime();
-    const loaded = getLoaded();
-    onTimeUpdate(currentTime, loaded);
+    dispatch({
+      type: t.SET_CURRENT_TIME,
+      data: {
+        currentTime: player.getCurrentTime(),
+        loaded: player.getVideoLoadedFraction
+          ? player.getVideoLoadedFraction()
+          : undefined,
+      },
+    });
   };
   const handleStateChange = ({ data: playerState }) => {
     if (playerState === YT.PlayerState.PLAYING) {
@@ -97,25 +112,35 @@ const genPlayer = ({
       clearInterval(timeupdateInterval);
     }
     switch (playerState) {
-      case YT.PlayerState.ENDED:
-        onPlayChange(false);
-        break;
       case YT.PlayerState.PLAYING:
-        onPlayChange(true);
-        break;
-      case YT.PlayerState.PAUSED:
-        onPlayChange(false);
+        dispatch({
+          type: t.SET_PLAYING,
+          data: true,
+        });
         break;
       case YT.PlayerState.BUFFERING:
         if ([
           -1,
           YT.PlayerState.PLAYING,
         ].indexOf(prevPlayerState) > -1) {
-          onPlayChange(true);
+          dispatch({
+            type: t.SET_PLAYING,
+            data: true,
+          });
         }
         break;
+      case YT.PlayerState.ENDED:
+      case YT.PlayerState.PAUSED:
+        dispatch({
+          type: t.SET_PLAYING,
+          data: false,
+        });
+        break;
       case YT.PlayerState.CUED:
-        onDurationChange(player.getDuration());
+        dispatch({
+          type: t.SET_DURATION,
+          data: player.getDuration(),
+        });
         break;
       default:
     }
@@ -138,16 +163,8 @@ const Youtube = ({
   videoId,
   playerVars,
   controls,
-  onReady,
-  onTimeUpdate,
-  onPlayChange,
-  onDurationChange,
-  onSeeking,
-  onSetMuted,
-  onSetVolume,
-  onDestroy,
-  setPlayerControls,
 }) => {
+  const { dispatch } = useContext(Store);
   const [player, setPlayer] = useState({});
   const refPlayer = useRef(null);
 
@@ -159,14 +176,7 @@ const Youtube = ({
         videoId,
         playerVars,
         controls,
-        onReady,
-        onTimeUpdate,
-        onPlayChange,
-        onDurationChange,
-        onSeeking,
-        onSetMuted,
-        onSetVolume,
-        setPlayerControls,
+        dispatch,
         setPlayer,
       };
       if (libLoaded) {
@@ -184,7 +194,9 @@ const Youtube = ({
       if (player.element) {
         player.removeEventListeners();
         player.element.destroy();
-        onDestroy();
+        dispatch({
+          type: t.DESTROY_PLAYER,
+        });
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -211,15 +223,6 @@ Youtube.propTypes = {
     autoplay: PropTypes.bool,
   }).isRequired,
   controls: PropTypes.bool.isRequired,
-  onReady: PropTypes.func.isRequired,
-  onTimeUpdate: PropTypes.func.isRequired,
-  onPlayChange: PropTypes.func.isRequired,
-  onDurationChange: PropTypes.func.isRequired,
-  onSeeking: PropTypes.func.isRequired,
-  onSetMuted: PropTypes.func.isRequired,
-  onSetVolume: PropTypes.func.isRequired,
-  onDestroy: PropTypes.func.isRequired,
-  setPlayerControls: PropTypes.func.isRequired,
 };
 
 export default Youtube;

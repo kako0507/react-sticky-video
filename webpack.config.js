@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const OptimizeCSSAssetsPlugin = require('optimize-css-assets-webpack-plugin');
@@ -39,7 +40,13 @@ module.exports = (env, argv) => ({
     rules: [
       {
         test: /\.jsx?$/,
-        use: 'babel-loader',
+        use: [
+          'babel-loader',
+          ...(argv.mode === 'production'
+            ? []
+            : ['webpack-strip-block']
+          ),
+        ],
       },
       {
         test: /\.md$/,
@@ -95,6 +102,15 @@ module.exports = (env, argv) => ({
       // both options are optional
       filename: 'index.css',
     }),
+    new webpack.NormalModuleReplacementPlugin(/(.*)STICKY_VIDEO(\.*)/, ((resource) => {
+      // eslint-disable-next-line no-param-reassign
+      resource.request = resource.request.replace(
+        /STICKY_VIDEO/,
+        argv.mode === 'production'
+          ? 'dist'
+          : 'src',
+      );
+    })),
   ],
   stats: {
     colors: true,

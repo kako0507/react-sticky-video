@@ -1,5 +1,5 @@
 import React, {
-  useState,
+  useReducer,
   useRef,
   useCallback,
   useEffect,
@@ -10,20 +10,28 @@ import classNames from 'classnames';
 import urlParser from 'js-video-url-parser/lib/base';
 import 'js-video-url-parser/lib/provider/dailymotion';
 import 'js-video-url-parser/lib/provider/youtube';
-
-import Youtube from './providerComponents/youtube';
-import Dailymotion from './providerComponents/dailymotion';
-import FileSource from './providerComponents/file-source';
-import Track from './components/track';
-import Controls from './components/controls';
-import CaptionSetting from './components/caption-setting';
+import t from './constants/actionTypes';
 import {
   isElementInViewport,
   checkFullScreen,
   openFullscreen,
   closeFullscreen,
 } from './utils';
+import Store from './store';
+import reducer from './reducer';
+import Track from './components/track';
+import Controls from './components/controls';
+import CaptionSetting from './components/caption-setting';
+import Youtube from './providerComponents/youtube';
+import Dailymotion from './providerComponents/dailymotion';
+import FileSource from './providerComponents/file-source';
 import styles from './styles.scss';
+
+const initialState = {
+  playerStatus: {},
+  playerControls: {},
+  vttCues: {},
+};
 
 const StickyVideo = ({
   url,
@@ -38,19 +46,21 @@ const StickyVideo = ({
   },
   originalControls,
 }) => {
-  const [isSticky, setSticky] = useState(false);
-  const [isFocusPlayer, setFocusPlayer] = useState(false);
-  const [isFullScreen, setFullScreen] = useState(false);
-  const [fullPage, setFullPage] = useState({
-    open: false,
-  });
-  const [playerStatus, setPlayerStatus] = useState({});
-  const [playerControls, setPlayerControls] = useState({});
-  const [selectedCaption, setSelectedCaption] = useState('');
+  const [state, dispatch] = useReducer(reducer, initialState);
+
+  const {
+    isSticky,
+    isFullScreen,
+    fullPage,
+    isFocusPlayer,
+    selectedCaption,
+    playerStatus,
+    playerControls,
+  } = state;
 
   const {
     isSeeking,
-    isSettingVolume,
+    isChangingVolume,
     currentTime,
   } = playerStatus;
 
@@ -60,8 +70,21 @@ const StickyVideo = ({
 
   const refHidden = useRef(null);
   const refPlayerContainer = useRef(null);
+  const refCCButton = useRef(null);
 
   const isShowControls = isFocusPlayer || !playerStatus.isPlaying;
+  const isFullPage = fullPage?.open;
+
+  const playerSize = isSticky
+    ? {
+      width: stickyWidth,
+      height: stickyHeight,
+    }
+    : {
+      width,
+      height,
+    };
+  const isVolumeSliderVisible = playerSize.width > 400;
 
   let videoId;
   let provider;
@@ -72,16 +95,22 @@ const StickyVideo = ({
   }
 
   const handleHideControls = useCallback(() => {
-    if (!isSeeking && !isSettingVolume) {
-      setFocusPlayer(false);
+    if (!isSeeking && !isChangingVolume) {
+      dispatch({
+        type: t.FOCUS_PLAYER,
+        data: false,
+      });
     }
-  }, [isSeeking, isSettingVolume]);
+  }, [isSeeking, isChangingVolume]);
   const debounceHideControls = useCallback(
     _.debounce(handleHideControls, 3000),
     [],
   );
   const handleShowControls = useCallback(() => {
-    setFocusPlayer(true);
+    dispatch({
+      type: t.FOCUS_PLAYER,
+      data: true,
+    });
     debounceHideControls();
   }, [debounceHideControls]);
   const handlePlayerControl = useCallback((event) => {
@@ -104,119 +133,38 @@ const StickyVideo = ({
   const handleClickFullscreen = useCallback(() => {
     const support = openFullscreen(refPlayerContainer.current);
     if (!support) {
-      setFullPage({
-        open: true,
-        bodyOverflow: document.body.style.overflow,
-        bodyWidth: document.body.style.width,
-        bodyHeight: document.body.style.height,
+      dispatch({
+        type: t.SET_FULLPAGE,
+        data: true,
       });
-      document.body.style.width = '100vw';
-      document.body.style.height = '100vh';
-      document.body.style.overflow = 'hidden';
     }
   }, []);
   const handleCancelFullscreen = useCallback(() => {
     closeFullscreen();
-    if (fullPage.open) {
-      document.body.style.width = fullPage.bodyWidth;
-      document.body.style.height = fullPage.bodyHeight;
-      document.body.style.overflow = fullPage.bodyOverflow;
-      setFullPage({
-        open: false,
-        bodyWidth: undefined,
-        bodyHeight: undefined,
-        bodyOverflow: undefined,
+    if (isFullPage) {
+      dispatch({
+        type: t.SET_FULLPAGE,
+        data: false,
       });
     }
-  }, [fullPage]);
-
-  const handleReady = useCallback((status) => {
-    setPlayerStatus((ps) => ({
-      ...ps,
-      ...status,
-    }));
-  }, []);
-  const handleTimeUpdate = useCallback((time, loaded) => {
-    setPlayerStatus((ps) => {
-      const { duration } = ps;
-      if (!time || !duration || ps.isSeeking) {
-        return ps;
-      }
-      return {
-        ...ps,
-        currentTime: time,
-        loaded: loaded || ps.loaded,
-      };
-    });
-  }, []);
-  const handlePlayChange = useCallback((isPlaying) => {
-    setPlayerStatus((ps) => {
-      if (ps.isSeeking) {
-        return ps;
-      }
-      return {
-        ...ps,
-        isPlaying,
-        hasPlayed: isPlaying || ps.hasPlayed,
-      };
-    });
-  }, []);
-  const handleProgressUpdate = useCallback((loaded) => {
-    setPlayerStatus((ps) => ({
-      ...ps,
-      loaded,
-    }));
-  }, []);
-  const handleDurationChange = useCallback((duration) => {
-    setPlayerStatus((ps) => ({
-      ...ps,
-      duration,
-    }));
-  }, []);
-  const handleSeeking = useCallback((fraction, handler) => {
-    setPlayerStatus((ps) => {
-      const time = fraction === undefined
-        ? ps.currentTime
-        : ps.duration * fraction;
-      const seeking = !!fraction;
-      handler(time, seeking, ps.isPlaying);
-      return {
-        ...ps,
-        isSeeking: seeking,
-        currentTime: time,
-        hoveredTime: seeking ? time : undefined,
-      };
-    });
-  }, []);
-  const handleSetMuted = useCallback((isMuted) => {
-    setPlayerStatus((ps) => ({
-      ...ps,
-      isMuted,
-    }));
-  }, []);
-  const handleSetVolume = useCallback((volume) => {
-    setPlayerStatus((ps) => ({
-      ...ps,
-      volume,
-      isMuted: volume === 0,
-      isSettingVolume: true,
-    }));
-  }, []);
-  const handleDestroy = useCallback(() => {
-    setPlayerStatus({});
-    setPlayerControls({});
-  }, []);
+  }, [isFullPage]);
 
   useEffect(() => {
     const element = refHidden.current;
     const handleScroll = () => {
       if (!isSticky && !isElementInViewport(element)) {
         if (playerStatus.isPlaying) {
-          setSticky(true);
+          dispatch({
+            type: t.SET_STICKY,
+            data: true,
+          });
         }
       }
       if (isSticky && isElementInViewport(element)) {
-        setSticky(false);
+        dispatch({
+          type: t.SET_STICKY,
+          data: false,
+        });
       }
     };
     const handleMouseUp = (event) => {
@@ -227,20 +175,21 @@ const StickyVideo = ({
         if (seekTo) {
           seekTo();
         }
-      } else if (isSettingVolume) {
-        setPlayerStatus((ps) => ({
-          ...ps,
-          isSettingVolume: false,
-        }));
+      } else if (isChangingVolume) {
+        dispatch({
+          type: t.SET_VOLUME,
+        });
       }
       event.preventDefault();
       event.stopPropagation();
     };
     const handleFullScreeChange = () => {
-      setFullScreen(checkFullScreen());
+      dispatch({
+        type: t.SET_FULLSCREEN,
+        data: checkFullScreen(),
+      });
     };
     document.addEventListener('scroll', handleScroll);
-    document.addEventListener('touchend', handleMouseUp);
     document.addEventListener('mouseup', handleMouseUp);
     document.addEventListener('fullscreenchange', handleFullScreeChange);
     document.addEventListener('mozfullscreenchange', handleFullScreeChange);
@@ -248,7 +197,6 @@ const StickyVideo = ({
     document.addEventListener('msfullscreenchange', handleFullScreeChange);
     return () => {
       document.removeEventListener('scroll', handleScroll);
-      document.removeEventListener('touchend', handleMouseUp);
       document.removeEventListener('mouseup', handleMouseUp);
       document.removeEventListener('fullscreenchange', handleFullScreeChange);
       document.removeEventListener('mozfullscreenchange', handleFullScreeChange);
@@ -265,15 +213,13 @@ const StickyVideo = ({
     isFocusPlayer,
     seekTo,
     isSeeking,
-    isSettingVolume,
+    isChangingVolume,
   ]);
 
   useEffect(() => {
-    setPlayerStatus((ps) => ({
-      ...ps,
-      hasPlayed: playerVars.autoplay,
-      isPlaying: false,
-    }));
+    dispatch({
+      type: t.SET_PLAYING,
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url]);
 
@@ -285,15 +231,6 @@ const StickyVideo = ({
           videoId={videoId}
           playerVars={playerVars}
           controls={originalControls}
-          onReady={handleReady}
-          onTimeUpdate={handleTimeUpdate}
-          onPlayChange={handlePlayChange}
-          onDurationChange={handleDurationChange}
-          onSeeking={handleSeeking}
-          onSetMuted={handleSetMuted}
-          onSetVolume={handleSetVolume}
-          onDestroy={handleDestroy}
-          setPlayerControls={setPlayerControls}
         />
       );
       break;
@@ -303,16 +240,6 @@ const StickyVideo = ({
           videoId={videoId}
           playerVars={playerVars}
           controls={originalControls}
-          onReady={handleReady}
-          onTimeUpdate={handleTimeUpdate}
-          onPlayChange={handlePlayChange}
-          onProgressUpdate={handleProgressUpdate}
-          onDurationChange={handleDurationChange}
-          onSeeking={handleSeeking}
-          onSetMuted={handleSetMuted}
-          onSetVolume={handleSetVolume}
-          onDestroy={handleDestroy}
-          setPlayerControls={setPlayerControls}
         />
       );
       break;
@@ -322,111 +249,96 @@ const StickyVideo = ({
           source={url}
           playerVars={playerVars}
           controls={originalControls}
-          onReady={handleReady}
-          onTimeUpdate={handleTimeUpdate}
-          onPlayChange={handlePlayChange}
-          onProgressUpdate={handleProgressUpdate}
-          onDurationChange={handleDurationChange}
-          onSeeking={handleSeeking}
-          onSetMuted={handleSetMuted}
-          onSetVolume={handleSetVolume}
-          onDestroy={handleDestroy}
-          setPlayerControls={setPlayerControls}
         />
       );
   }
 
   return (
-    <div
-      className={styles.container}
-      style={{
-        width,
-        height,
+    <Store.Provider
+      value={{
+        state,
+        dispatch,
       }}
     >
       <div
-        ref={refHidden}
-        className={styles.hidden}
-      />
-      <div
-        role="button"
-        tabIndex="0"
-        ref={refPlayerContainer}
-        className={classNames(
-          styles.player,
-          {
-            [styles.fullPage]: fullPage.open,
-            [styles.sticky]: isSticky && !fullPage.open,
-            [styles.stTopRight]: position === 'top-right',
-            [styles.stTopLeft]: position === 'top-left',
-            [styles.stBottomRight]: position === 'bottom-right',
-            [styles.stBottomLeft]: position === 'bottom-left',
-          },
-        )}
-        style={(isSticky
-          ? {
-            width: stickyWidth,
-            height: stickyHeight,
-          }
-          : {
-            width,
-            height,
-          }
-        )}
-        onFocus={handleShowControls}
-        onMouseMove={handleShowControls}
-        onMouseOver={handleShowControls}
-        onBlur={handleHideControls}
-        onMouseOut={handleHideControls}
+        className={styles.container}
+        style={{
+          width,
+          height,
+        }}
       >
+        <div
+          ref={refHidden}
+          className={styles.hidden}
+        />
         <div
           role="button"
           tabIndex="0"
+          ref={refPlayerContainer}
           className={classNames(
-            styles.playerContainer,
+            styles.player,
             {
-              [styles.seeking]: !originalControls && _.some([
-                playerStatus.isSeeking,
-                playerStatus.isSettingVolume,
-                playerStatus.isPlaying,
-              ]),
+              [styles.fullPage]: isFullPage,
+              [styles.sticky]: isSticky && !isFullPage,
+              [styles.stTopRight]: position === 'top-right',
+              [styles.stTopLeft]: position === 'top-left',
+              [styles.stBottomRight]: position === 'bottom-right',
+              [styles.stBottomLeft]: position === 'bottom-left',
             },
           )}
-          onClick={handlePlayerControl}
-          onKeyPress={handlePlayerControl}
+          style={playerSize}
+          onFocus={handleShowControls}
+          onMouseMove={handleShowControls}
+          onMouseOver={handleShowControls}
         >
-          {nodePlayer}
+          <div
+            role="button"
+            tabIndex="0"
+            className={classNames(
+              styles.playerContainer,
+              {
+                [styles.seeking]: !originalControls && _.some([
+                  playerStatus.isSeeking,
+                  playerStatus.isChangingVolume,
+                  playerStatus.isPlaying,
+                ]),
+              },
+            )}
+            onClick={handlePlayerControl}
+            onKeyPress={handlePlayerControl}
+          >
+            {nodePlayer}
+          </div>
+          {!originalControls && (
+            <Controls
+              ref={refCCButton}
+              show={isShowControls}
+              isFullScreen={isFullScreen || isFullPage}
+              isVolumeSliderVisible={isVolumeSliderVisible}
+              captions={captions}
+              onClickFullscreen={handleClickFullscreen}
+              onCancelFullscreen={handleCancelFullscreen}
+            />
+          )}
+          {selectedCaption && captions?.length > 0 && (
+            <Track
+              isShowControls={isShowControls}
+              isSticky={isSticky}
+              currentTime={currentTime}
+              captions={captions}
+              selectedCaption={selectedCaption}
+            />
+          )}
+          {captions?.length > 0 && (
+            <CaptionSetting
+              elemCCButton={refCCButton.current}
+              captions={captions}
+              selectedCaption={selectedCaption}
+            />
+          )}
         </div>
-        {!originalControls && (
-          <Controls
-            isFullScreen={isFullScreen || fullPage.open}
-            onClickFullscreen={handleClickFullscreen}
-            onCancelFullscreen={handleCancelFullscreen}
-            playerStatus={playerStatus}
-            playerControls={playerControls}
-            setPlayerStatus={setPlayerStatus}
-            captions={captions}
-            selectedCaption={selectedCaption}
-            setSelectedCaption={setSelectedCaption}
-            show={isShowControls}
-          />
-        )}
-        {selectedCaption && captions?.length > 0 && (
-          <Track
-            isShowControls={isShowControls}
-            isSticky={isSticky}
-            currentTime={currentTime}
-            captions={captions}
-            selectedCaption={selectedCaption}
-          />
-        )}
-        <CaptionSetting
-          captions={captions}
-          selectedCaption={selectedCaption}
-          setSelectedCaption={setSelectedCaption}
-        />
       </div>
-    </div>
+    </Store.Provider>
   );
 };
 

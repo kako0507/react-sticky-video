@@ -1,48 +1,66 @@
 import _ from 'lodash';
-import React from 'react';
+import React, {
+  useContext,
+  useRef,
+  useCallback,
+} from 'react';
 import PropTypes from 'prop-types';
+import classNames from 'classnames';
 import useDeepCompareEffect from 'use-deep-compare-effect';
+import t from '../../constants/actionTypes';
+import Store from '../../store';
+import useOnClickOutside from '../../hooks/useOnClickOutside';
+import CaptionMenuItem from './caption-menu-item';
+import appStyles from '../../styles.scss';
 import styles from './styles.scss';
 
-const CaptionSetting = ({
-  captions,
-  selectedCaption,
-  setSelectedCaption,
-}) => {
+const CaptionSetting = ({ captions, elemCCButton }) => {
+  const {
+    state: {
+      isShowingCCSetting,
+    },
+    dispatch,
+  } = useContext(Store);
+  const refPanel = useRef(null);
+
+  const close = useCallback(() => {
+    dispatch({
+      type: t.SHOW_CC_SETTING,
+      data: false,
+    });
+  }, [dispatch]);
+
   useDeepCompareEffect(() => {
     const defaultCaption = _.find(captions, (c) => c.default);
     if (defaultCaption?.label) {
-      setSelectedCaption(defaultCaption.label);
+      dispatch({
+        type: t.SELECT_CAPTION,
+        data: defaultCaption.label,
+      });
     }
   }, [captions]);
 
-  if (!captions.length) {
-    return null;
-  }
+  useOnClickOutside(refPanel, close, elemCCButton);
 
   return (
-    <div className={styles.panel}>
+    <div
+      ref={refPanel}
+      className={classNames(
+        styles.panel,
+        {
+          [appStyles.hide]: !isShowingCCSetting,
+        },
+      )}
+    >
       <div
         className={styles.menu}
         role="menu"
       >
         {captions.map(({ label }) => (
-          <div
-            tabIndex="0"
-            role="menuitemradio"
-            className={styles.menuItem}
-            aria-checked={selectedCaption === label}
-            onClick={() => {
-              setSelectedCaption(label);
-            }}
+          <CaptionMenuItem
+            label={label}
             key={label}
-          >
-            <div
-              className={styles.label}
-            >
-              {label}
-            </div>
-          </div>
+          />
         ))}
       </div>
     </div>
@@ -54,11 +72,11 @@ CaptionSetting.propTypes = {
     default: PropTypes.bool,
     label: PropTypes.string,
   })).isRequired,
-  selectedCaption: PropTypes.string.isRequired,
-  setSelectedCaption: PropTypes.func.isRequired,
+  elemCCButton: PropTypes.instanceOf(Element),
 };
 
 CaptionSetting.defaultProps = {
+  elemCCButton: undefined,
 };
 
 export default CaptionSetting;

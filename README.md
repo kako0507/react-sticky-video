@@ -13,7 +13,8 @@ Name | Type | Default | Description
 url | string | undefined | The URL of the video to embed. (current supported source: file, Youtube, Dailymotion)
 width | number | 640 | The width of the video's display area.
 height | number | 360 | The width of the video's display area.
-playerVars | object | -- | The object's properties identify player parameters that can be used to customize the player
+playerVars | object | -- | The object's properties identify player parameters that can be used to customize the player, more details are given below.
+captions | array | [] | URLs for WebVTT caption files
 originalControls | bool | false | Use original video controls UI.
 
 #### Example
@@ -94,6 +95,33 @@ const App = () => (
       height: 270,
       position: 'top-left',
     }
+  />
+);
+```
+
+### WebVTT Captions
+
+#### Example - [Demo](http://kako0507.github.io/react-sticky-video/#video=captions)
+
+```js
+import React from 'react';
+import StickyVideo from 'react-sticky-video';
+import 'react-sticky-video/dist/index.css';
+
+const App = () => (
+  <StickyVideo
+    url="https://youtu.be/Fkd9TWUtFm0"
+    captions={[
+      {
+        src: 'ted-en.vtt',
+        label: 'English',
+        default: true,
+      },
+      {
+        src: 'ted-zh-TW.vtt',
+        label: '中文',
+      },
+    ]}
   />
 );
 ```

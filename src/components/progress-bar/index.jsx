@@ -1,32 +1,38 @@
 import React, {
+  useContext,
   useRef,
   useCallback,
   useEffect,
 } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
+import t from '../../constants/actionTypes';
 import {
   getFractionFromMouseEvent,
   getTimeStringFromSeconds,
 } from '../../utils';
+import Store from '../../store';
 import appStyles from '../../styles.scss';
 import styles from './styles.scss';
 
 const tooltipContainerWidth = 200;
 
 const ProgressBar = ({
-  playerStatus: {
-    isSeeking,
-    currentTime,
-    hoveredTime,
-    duration,
-    loaded,
-  },
-  onChangeHoveredTime,
   seekTo,
 }) => {
+  const {
+    state: {
+      playerStatus: {
+        isSeeking,
+        currentTime,
+        hoveredTime,
+        duration,
+        loaded,
+      },
+    },
+    dispatch,
+  } = useContext(Store);
   const refProgressContainer = useRef(null);
-
   let currentTimePercentage;
   let hoveredTimePercentage;
   let hoveredTimeString;
@@ -59,11 +65,13 @@ const ProgressBar = ({
 
   const handleProgressMouseOut = useCallback((event) => {
     if (!isSeeking) {
-      onChangeHoveredTime(undefined);
+      dispatch({
+        type: t.SET_HOVERED_TIME,
+      });
       event.preventDefault();
       event.stopPropagation();
     }
-  }, [isSeeking, onChangeHoveredTime]);
+  }, [dispatch, isSeeking]);
 
   useEffect(() => {
     const elemProgress = refProgressContainer.current;
@@ -77,17 +85,18 @@ const ProgressBar = ({
         const isInProgressBar = elemProgress.contains(event.target);
         if (isInProgressBar) {
           const fraction = getFractionFromMouseEvent(elemProgress, event);
-          onChangeHoveredTime(fraction);
+          dispatch({
+            type: t.SET_HOVERED_TIME,
+            data: fraction,
+          });
         }
       }
-      event.preventDefault();
-      event.stopPropagation();
     };
     document.addEventListener('mousemove', handleProgressMouseMove);
     return () => {
       document.removeEventListener('mousemove', handleProgressMouseMove);
     };
-  }, [seekTo, isSeeking, onChangeHoveredTime]);
+  }, [seekTo, isSeeking, dispatch]);
 
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events
@@ -163,15 +172,7 @@ const ProgressBar = ({
 };
 
 ProgressBar.propTypes = {
-  playerStatus: PropTypes.shape({
-    isSeeking: PropTypes.bool,
-    currentTime: PropTypes.number,
-    hoveredTime: PropTypes.number,
-    duration: PropTypes.number,
-    loaded: PropTypes.number,
-  }).isRequired,
   seekTo: PropTypes.func,
-  onChangeHoveredTime: PropTypes.func.isRequired,
 };
 
 ProgressBar.defaultProps = {

@@ -7,7 +7,7 @@ import {
 import appStyles from '../../styles.scss';
 import styles from './styles.scss';
 
-const CaptionSetting = ({
+const Timer = ({
   currentTime,
   duration,
 }) => {
@@ -37,14 +37,14 @@ const CaptionSetting = ({
   );
 };
 
-CaptionSetting.propTypes = {
+Timer.propTypes = {
   currentTime: PropTypes.number,
   duration: PropTypes.number,
 };
 
-CaptionSetting.defaultProps = {
+Timer.defaultProps = {
   currentTime: undefined,
   duration: undefined,
 };
 
-export default CaptionSetting;
+export default Timer;
