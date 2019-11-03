@@ -1,11 +1,15 @@
 /* global DM */
 import load from 'load-script';
 import React, {
+  useContext,
   useState,
   useRef,
   useEffect,
 } from 'react';
+import useDeepCompareEffect from 'use-deep-compare-effect';
 import PropTypes from 'prop-types';
+import t from '../constants/actionTypes';
+import Store from '../store';
 import styles from '../styles.scss';
 
 let libLoaded;
@@ -15,15 +19,7 @@ const genPlayer = ({
   videoId,
   playerVars,
   controls,
-  onReady,
-  onTimeUpdate,
-  onPlayChange,
-  onProgressUpdate,
-  onDurationChange,
-  onSeeking,
-  onSetMuted,
-  onSetVolume,
-  setPlayerControls,
+  dispatch,
   setPlayer,
 }) => {
   const player = DM.player(elemPlayer, {
@@ -39,51 +35,80 @@ const genPlayer = ({
   });
 
   const handleReadyEvent = () => {
-    onReady({
-      duration: player.duration,
-      isMuted: player.muted,
-      volume: player.volume,
-    });
-    setPlayerControls((playerControl) => ({
-      ...playerControl,
-      play: () => {
-        player.play();
-      },
-      pause: () => {
-        player.pause();
-      },
-      seekTo: (fraction) => {
-        onSeeking(fraction, (second, isSeeking, isPlaying) => {
-          player.seek(second);
-          if (isSeeking && !player.paused) {
-            player.pause();
-          }
-          if (!isSeeking && isPlaying) {
+    dispatch({
+      type: t.CREATE_PLAYER,
+      data: {
+        playerStatus: {
+          duration: player.duration,
+          isMuted: player.muted,
+          volume: player.volume,
+        },
+        playerControls: {
+          play: () => {
             player.play();
-          }
-        });
+          },
+          pause: () => {
+            player.pause();
+          },
+          seekTo: (fraction) => {
+            dispatch({
+              type: t.SEEK_TO_FRACTION,
+              data: {
+                fraction,
+                handler: (second, isSeeking, isPlaying) => {
+                  player.seek(second);
+                  if (isSeeking && !player.paused) {
+                    player.pause();
+                  }
+                  if (!isSeeking && isPlaying) {
+                    player.play();
+                  }
+                },
+              },
+            });
+          },
+          setMuted: (isMuted) => {
+            player.setMuted(isMuted);
+            dispatch({
+              type: t.SET_MUTE,
+              data: isMuted,
+            });
+          },
+          setVolume: (volume) => {
+            if (volume !== undefined) {
+              player.setVolume(volume);
+              if (volume > 0 && player.muted) {
+                player.setMute(false);
+              }
+            }
+            dispatch({
+              type: t.SET_VOLUME,
+              data: volume,
+            });
+          },
+        },
       },
-      setMuted: (isMuted) => {
-        player.setMuted(isMuted);
-        onSetMuted(isMuted);
-      },
-      setVolume: (volume) => {
-        player.setVolume(volume);
-        if (volume > 0 && player.muted) {
-          player.setMute(false);
-        }
-        onSetVolume(volume);
-      },
-    }));
+    });
   };
   const handleTimeUpdateEvent = () => {
-    onTimeUpdate(player.currentTime);
+    dispatch({
+      type: t.SET_CURRENT_TIME,
+      data: {
+        currentTime: player.currentTime,
+      },
+    });
   };
   const handlePlayEvent = () => {
-    onPlayChange(true);
+    dispatch({
+      type: t.SET_PLAYING,
+      data: true,
+    });
   };
   const handlePauseEvent = () => {
-    onPlayChange(false);
+    dispatch({
+      type: t.SET_PLAYING,
+      data: false,
+    });
   };
   const handleProgressUpdate = () => {
     const {
@@ -94,10 +119,16 @@ const genPlayer = ({
     if (bufferedTime && duration) {
       loaded = bufferedTime / duration;
     }
-    onProgressUpdate(loaded);
+    dispatch({
+      type: t.SET_LOADED_PERCENTAGE,
+      data: loaded,
+    });
   };
   const handleDurationChange = () => {
-    onDurationChange(player.duration);
+    dispatch({
+      type: t.SET_DURATION,
+      data: player.duration,
+    });
   };
 
   player.addEventListener('apiready', handleReadyEvent);
@@ -125,17 +156,8 @@ const Dailymotion = ({
   videoId,
   playerVars,
   controls,
-  onReady,
-  onTimeUpdate,
-  onPlayChange,
-  onProgressUpdate,
-  onDurationChange,
-  onSeeking,
-  onSetMuted,
-  onSetVolume,
-  onDestroy,
-  setPlayerControls,
 }) => {
+  const { dispatch } = useContext(Store);
   const [player, setPlayer] = useState({});
   const refPlayer = useRef(null);
 
@@ -147,15 +169,7 @@ const Dailymotion = ({
         videoId,
         playerVars,
         controls,
-        onReady,
-        onTimeUpdate,
-        onPlayChange,
-        onProgressUpdate,
-        onDurationChange,
-        onSeeking,
-        onSetMuted,
-        onSetVolume,
-        setPlayerControls,
+        dispatch,
         setPlayer,
       };
       if (libLoaded) {
@@ -174,14 +188,16 @@ const Dailymotion = ({
     return () => {
       if (player.element) {
         player.removeEventListeners();
-        onDestroy();
+        dispatch({
+          type: t.DESTROY_PLAYER,
+        });
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [player, playerVars]);
 
-  // play another video
-  useEffect(() => {
+  // play another video or update playerVars
+  useDeepCompareEffect(() => {
     if (player.element) {
       player.element.load({
         ...playerVars,
@@ -204,16 +220,6 @@ Dailymotion.propTypes = {
     autoplay: PropTypes.bool,
   }).isRequired,
   controls: PropTypes.bool.isRequired,
-  onReady: PropTypes.func.isRequired,
-  onTimeUpdate: PropTypes.func.isRequired,
-  onPlayChange: PropTypes.func.isRequired,
-  onProgressUpdate: PropTypes.func.isRequired,
-  onDurationChange: PropTypes.func.isRequired,
-  onSeeking: PropTypes.func.isRequired,
-  onSetMuted: PropTypes.func.isRequired,
-  onSetVolume: PropTypes.func.isRequired,
-  onDestroy: PropTypes.func.isRequired,
-  setPlayerControls: PropTypes.func.isRequired,
 };
 
 export default Dailymotion;

@@ -1,36 +1,48 @@
 import React, {
+  useContext,
   useRef,
   useCallback,
   useEffect,
 } from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
+import t from '../../constants/actionTypes';
 import {
   getFractionFromMouseEvent,
   getTimeStringFromSeconds,
 } from '../../utils';
+import Store from '../../store';
 import appStyles from '../../styles.scss';
 import styles from './styles.scss';
 
 const tooltipContainerWidth = 200;
 
 const ProgressBar = ({
-  playerStatus: {
-    isSeeking,
-    duration,
-    loaded,
-    hovered,
-    played,
-  },
-  onChangeHoveredTime,
   seekTo,
 }) => {
+  const {
+    state: {
+      playerStatus: {
+        isSeeking,
+        currentTime,
+        hoveredTime,
+        duration,
+        loaded,
+      },
+    },
+    dispatch,
+  } = useContext(Store);
   const refProgressContainer = useRef(null);
-
-  let timeStringHover;
+  let currentTimePercentage;
+  let hoveredTimePercentage;
+  let hoveredTimeString;
   if (duration !== undefined) {
-    if (hovered !== undefined) {
-      timeStringHover = getTimeStringFromSeconds(Math.round(duration * hovered));
+    if (currentTime !== undefined) {
+      currentTimePercentage = (currentTime * 100) / duration;
+    }
+    if (hoveredTime !== undefined) {
+      hoveredTimePercentage = (hoveredTime * 100) / duration;
+      hoveredTimeString = getTimeStringFromSeconds(Math.round(hoveredTime));
     }
   }
 
@@ -53,11 +65,13 @@ const ProgressBar = ({
 
   const handleProgressMouseOut = useCallback((event) => {
     if (!isSeeking) {
-      onChangeHoveredTime(undefined);
+      dispatch({
+        type: t.SET_HOVERED_TIME,
+      });
       event.preventDefault();
       event.stopPropagation();
     }
-  }, [isSeeking, onChangeHoveredTime]);
+  }, [dispatch, isSeeking]);
 
   useEffect(() => {
     const elemProgress = refProgressContainer.current;
@@ -71,17 +85,18 @@ const ProgressBar = ({
         const isInProgressBar = elemProgress.contains(event.target);
         if (isInProgressBar) {
           const fraction = getFractionFromMouseEvent(elemProgress, event);
-          onChangeHoveredTime(fraction);
+          dispatch({
+            type: t.SET_HOVERED_TIME,
+            data: fraction,
+          });
         }
       }
-      event.preventDefault();
-      event.stopPropagation();
     };
     document.addEventListener('mousemove', handleProgressMouseMove);
     return () => {
       document.removeEventListener('mousemove', handleProgressMouseMove);
     };
-  }, [seekTo, isSeeking, onChangeHoveredTime]);
+  }, [seekTo, isSeeking, dispatch]);
 
   return (
     // eslint-disable-next-line jsx-a11y/click-events-have-key-events
@@ -97,7 +112,7 @@ const ProgressBar = ({
       onBlur={handleProgressMouseOut}
       aria-valuemin={0}
       aria-valuemax={100}
-      aria-valuenow={played * 100}
+      aria-valuenow={currentTimePercentage}
     >
       <div className={styles.progress}>
         <div
@@ -115,22 +130,22 @@ const ProgressBar = ({
           className={classNames(
             styles.progressHover,
             {
-              [appStyles.hide]: hovered === undefined,
+              [appStyles.hide]: hoveredTime === undefined,
             },
           )}
           style={{
-            width: `${hovered * 100}%`,
+            width: `${hoveredTimePercentage}%`,
           }}
         />
         <div
           className={classNames(
             styles.progressPlayed,
             {
-              [appStyles.hide]: played === undefined,
+              [appStyles.hide]: currentTime === undefined,
             },
           )}
           style={{
-            width: `${played * 100}%`,
+            width: `${currentTimePercentage}%`,
           }}
         >
           <div className={styles.progressDot} />
@@ -139,16 +154,16 @@ const ProgressBar = ({
           className={classNames(
             styles.tooltipContainer,
             {
-              [appStyles.hide]: hovered === undefined,
+              [appStyles.hide]: hoveredTime === undefined,
             },
           )}
           style={{
-            left: `calc(${hovered * 100}% - ${tooltipContainerWidth / 2}px)`,
+            left: `calc(${hoveredTimePercentage}% - ${tooltipContainerWidth / 2}px)`,
             width: tooltipContainerWidth,
           }}
         >
           <span className={styles.tooltipText}>
-            {timeStringHover}
+            {hoveredTimeString}
           </span>
         </div>
       </div>
@@ -157,15 +172,7 @@ const ProgressBar = ({
 };
 
 ProgressBar.propTypes = {
-  playerStatus: PropTypes.shape({
-    isSeeking: PropTypes.bool,
-    duration: PropTypes.number,
-    loaded: PropTypes.number,
-    hovered: PropTypes.number,
-    played: PropTypes.number,
-  }).isRequired,
   seekTo: PropTypes.func,
-  onChangeHoveredTime: PropTypes.func.isRequired,
 };
 
 ProgressBar.defaultProps = {

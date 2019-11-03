@@ -1,87 +1,114 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import React, {
+  useContext,
   useRef,
   useEffect,
 } from 'react';
 import PropTypes from 'prop-types';
+import t from '../constants/actionTypes';
+import Store from '../store';
 
 const FileSource = ({
   source,
   playerVars,
   controls,
-  onReady,
-  onTimeUpdate,
-  onPlayChange,
-  onProgressUpdate,
-  onDurationChange,
-  onSeeking,
-  onSetMuted,
-  onSetVolume,
-  onDestroy,
-  setPlayerControls,
 }) => {
+  const { dispatch } = useContext(Store);
   const refPlayer = useRef(null);
   const multiSource = Array.isArray(source);
 
   useEffect(() => {
     const elemPlayer = refPlayer.current;
     const handleReadyEvent = () => {
-      onReady({
-        duration: elemPlayer.duration,
-        isMuted: elemPlayer.muted,
-        volume: elemPlayer.volume,
-      });
-      setPlayerControls((playerControl) => ({
-        ...playerControl,
-        play: () => {
-          elemPlayer.play();
-        },
-        pause: () => {
-          elemPlayer.pause();
-        },
-        seekTo: (fraction) => {
-          onSeeking(fraction, (second, isSeeking, isPlaying) => {
-            elemPlayer.currentTime = second;
-            if (isSeeking && !elemPlayer.paused) {
-              elemPlayer.pause();
-            }
-            if (!isSeeking && isPlaying) {
+      dispatch({
+        type: t.CREATE_PLAYER,
+        data: {
+          playerStatus: {
+            duration: elemPlayer.duration,
+            isMuted: elemPlayer.muted,
+            volume: elemPlayer.volume,
+          },
+          playerControls: {
+            play: () => {
               elemPlayer.play();
-            }
-          });
+            },
+            pause: () => {
+              elemPlayer.pause();
+            },
+            seekTo: (fraction) => {
+              dispatch({
+                type: t.SEEK_TO_FRACTION,
+                data: {
+                  fraction,
+                  handler: (second, isSeeking, isPlaying) => {
+                    elemPlayer.currentTime = second;
+                    if (isSeeking && !elemPlayer.paused) {
+                      elemPlayer.pause();
+                    }
+                    if (!isSeeking && isPlaying) {
+                      elemPlayer.play();
+                    }
+                  },
+                },
+              });
+            },
+            setMuted: (isMuted) => {
+              elemPlayer.muted = isMuted;
+              dispatch({
+                type: t.SET_MUTE,
+                data: isMuted,
+              });
+            },
+            setVolume: (volume) => {
+              elemPlayer.volume = volume;
+              if (volume > 0 && elemPlayer.muted) {
+                elemPlayer.muted = false;
+              }
+              dispatch({
+                type: t.SET_VOLUME,
+                data: volume,
+              });
+            },
+          },
         },
-        setMuted: (isMuted) => {
-          elemPlayer.muted = isMuted;
-          onSetMuted(isMuted);
-        },
-        setVolume: (volume) => {
-          elemPlayer.volume = volume;
-          if (volume > 0 && elemPlayer.muted) {
-            elemPlayer.muted = false;
-          }
-          onSetVolume(volume);
-        },
-      }));
+      });
     };
     const handleTimeUpdateEvent = () => {
-      onTimeUpdate(elemPlayer.currentTime);
+      dispatch({
+        type: t.SET_CURRENT_TIME,
+        data: {
+          currentTime: elemPlayer.currentTime,
+        },
+      });
     };
     const handlePlayEvent = () => {
-      onPlayChange(true);
+      dispatch({
+        type: t.SET_PLAYING,
+        data: true,
+      });
     };
     const handlePauseEvent = () => {
-      onPlayChange(false);
+      dispatch({
+        type: t.SET_PLAYING,
+        data: false,
+      });
     };
     const handleProgressUpdateEvent = () => {
       const { buffered, duration } = elemPlayer;
       let loaded = 0;
-      if (buffered.length && duration) {
+      if (buffered?.length && duration) {
         loaded = elemPlayer.buffered.end(0) / duration;
       }
-      onProgressUpdate(loaded);
+      dispatch({
+        type: t.SET_LOADED_PERCENTAGE,
+        data: loaded,
+      });
     };
     const handleDurationChangeEvent = () => {
-      onDurationChange(elemPlayer.duration);
+      dispatch({
+        type: t.SET_DURATION,
+        data: elemPlayer.duration,
+      });
     };
 
     elemPlayer.addEventListener('canplay', handleReadyEvent);
@@ -97,14 +124,19 @@ const FileSource = ({
       elemPlayer.removeEventListener('timeupdate', handleTimeUpdateEvent);
       elemPlayer.removeEventListener('play', handlePlayEvent);
       elemPlayer.removeEventListener('pause', handlePauseEvent);
-      onDestroy();
+      dispatch({
+        type: t.DESTROY_PLAYER,
+      });
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    onSetMuted(playerVars.isMuted);
-  }, [onSetMuted, playerVars.isMuted]);
+    dispatch({
+      type: t.SET_MUTE,
+      data: playerVars.muted,
+    });
+  }, [dispatch, playerVars.muted]);
 
   return (
     <video
@@ -112,7 +144,7 @@ const FileSource = ({
       src={multiSource ? undefined : source}
       autoPlay={playerVars.autoplay}
       loop={playerVars.loop}
-      muted={playerVars.isMuted}
+      muted={playerVars.muted}
       controls={controls}
       playsInline
     >
@@ -140,19 +172,9 @@ FileSource.propTypes = {
   playerVars: PropTypes.shape({
     autoplay: PropTypes.bool,
     loop: PropTypes.bool,
-    isMuted: PropTypes.bool,
+    muted: PropTypes.bool,
   }).isRequired,
   controls: PropTypes.bool.isRequired,
-  onReady: PropTypes.func.isRequired,
-  onTimeUpdate: PropTypes.func.isRequired,
-  onPlayChange: PropTypes.func.isRequired,
-  onProgressUpdate: PropTypes.func.isRequired,
-  onDurationChange: PropTypes.func.isRequired,
-  onSeeking: PropTypes.func.isRequired,
-  onSetMuted: PropTypes.func.isRequired,
-  onSetVolume: PropTypes.func.isRequired,
-  onDestroy: PropTypes.func.isRequired,
-  setPlayerControls: PropTypes.func.isRequired,
 };
 
 export default FileSource;

@@ -1,4 +1,6 @@
 import React, {
+  forwardRef,
+  useContext,
   useCallback,
 } from 'react';
 import PropTypes from 'prop-types';
@@ -8,7 +10,10 @@ import {
   faPause,
   faExpand,
   faCompress,
+  faClosedCaptioning,
 } from '@fortawesome/free-solid-svg-icons';
+import t from '../../constants/actionTypes';
+import Store from '../../store';
 import PlayCircle from '../play-circle';
 import ProgressBar from '../progress-bar';
 import IconButton from '../icon-button';
@@ -17,54 +22,43 @@ import appStyles from '../../styles.scss';
 import styles from './styles.scss';
 import Timer from '../timer';
 
-const Controls = ({
-  show,
-  isFullScreen,
-  onClickFullscreen,
-  onCancelFullscreen,
-  playerStatus,
-  playerControls,
-  setPlayerStatus,
-}) => {
+const Controls = forwardRef((
+  {
+    show,
+    isFullScreen,
+    isVolumeSliderVisible,
+    captions,
+    onClickFullscreen,
+    onCancelFullscreen,
+  },
+  refCCButton,
+) => {
   const {
-    hasPlayed,
-    isPlaying,
-    isSettingVolume,
-    played,
-    duration,
-    isMuted,
-    volume,
-  } = playerStatus;
-
-  const {
-    play,
-    pause,
-    seekTo,
-    setMuted,
-    setVolume,
-  } = playerControls;
+    state: {
+      playerStatus: {
+        hasPlayed,
+        isPlaying,
+        currentTime,
+        duration,
+      },
+      playerControls: {
+        play,
+        pause,
+        seekTo,
+      },
+    },
+    dispatch,
+  } = useContext(Store);
 
   const containerStyle = {
     [appStyles.hide]: !hasPlayed || !show,
   };
 
-  const handleChangeHoveredTime = useCallback((hovered) => {
-    setPlayerStatus((ps) => ({ ...ps, hovered }));
-  }, [setPlayerStatus]);
-  const handleChangeSeeking = useCallback((isSeeking) => {
-    setPlayerStatus((ps) => ({ ...ps, isSeeking }));
-  }, [setPlayerStatus]);
-  const handleChangeVolume = useCallback((v) => {
-    setPlayerStatus((ps) => {
-      if (v === undefined) {
-        return { ...ps, isSettingVolume: false };
-      }
-      if (setVolume) {
-        setVolume(v);
-      }
-      return { ...ps, volume: v };
+  const handleShowCC = useCallback(() => {
+    dispatch({
+      type: t.SHOW_CC_SETTING,
     });
-  }, [setPlayerStatus, setVolume]);
+  }, [dispatch]);
 
   return (
     <>
@@ -82,11 +76,7 @@ const Controls = ({
         )}
       >
         <ProgressBar
-          playerStatus={playerStatus}
           seekTo={seekTo}
-          onChangeHoveredTime={handleChangeHoveredTime}
-          onChangeSeeking={handleChangeSeeking}
-
         />
         <div className={styles.buttons}>
           <IconButton
@@ -101,18 +91,20 @@ const Controls = ({
             onClick={pause}
             disabled={!pause}
           />
-          <VolumeSlider
-            isMuted={isMuted}
-            isSettingVolume={isSettingVolume}
-            volume={volume}
-            onSetMuted={setMuted}
-            onChangeVolume={handleChangeVolume}
-          />
+          <VolumeSlider show={isVolumeSliderVisible} />
           <Timer
-            played={played}
+            currentTime={currentTime}
             duration={duration}
           />
           <div className={styles.flex1} />
+          {captions.length > 0 && (
+            <div ref={refCCButton}>
+              <IconButton
+                icon={faClosedCaptioning}
+                onClick={handleShowCC}
+              />
+            </div>
+          )}
           <IconButton
             icon={faExpand}
             hide={isFullScreen}
@@ -127,35 +119,20 @@ const Controls = ({
       </div>
     </>
   );
-};
+});
 
 Controls.propTypes = {
   show: PropTypes.bool,
-  isFullScreen: PropTypes.bool.isRequired,
+  isFullScreen: PropTypes.bool,
+  // eslint-disable-next-line react/forbid-prop-types
+  captions: PropTypes.array.isRequired,
   onClickFullscreen: PropTypes.func.isRequired,
   onCancelFullscreen: PropTypes.func.isRequired,
-  playerStatus: PropTypes.shape({
-    hasPlayed: PropTypes.bool,
-    isPlaying: PropTypes.bool,
-    isSettingVolume: PropTypes.bool,
-    duration: PropTypes.number,
-    hovered: PropTypes.number,
-    played: PropTypes.number,
-    isMuted: PropTypes.bool,
-    volume: PropTypes.number,
-  }).isRequired,
-  playerControls: PropTypes.shape({
-    play: PropTypes.func,
-    pause: PropTypes.func,
-    seekTo: PropTypes.func,
-    setMuted: PropTypes.func,
-    setVolume: PropTypes.func,
-  }).isRequired,
-  setPlayerStatus: PropTypes.func.isRequired,
 };
 
 Controls.defaultProps = {
   show: false,
+  isFullScreen: false,
 };
 
 export default Controls;

@@ -7,8 +7,11 @@ import ReactMarkDown from 'react-markdown';
 import queryString from 'query-string';
 import Readme from '../README.md';
 import Table from './table';
-import StickyVideo from '../dist';
+// eslint-disable-next-line import/no-unresolved
+import StickyVideo from '../STICKY_VIDEO';
+/* develblock:start */
 import '../dist/index.css';
+/* develblock:end */
 
 const md = `
 ## Demo
@@ -121,6 +124,26 @@ const App = () => {
             height: 270,
             position: 'top-left',
           }}
+        />
+      );
+      break;
+    case 'captions':
+      demoVideoElement = (
+        <StickyVideo
+          width={width}
+          height={width * 0.5625}
+          url="https://youtu.be/Fkd9TWUtFm0"
+          captions={[
+            {
+              src: 'ted-en.vtt',
+              label: 'English',
+              default: true,
+            },
+            {
+              src: 'ted-zh-TW.vtt',
+              label: '中文',
+            },
+          ]}
         />
       );
       break;

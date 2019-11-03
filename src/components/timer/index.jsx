@@ -8,13 +8,13 @@ import appStyles from '../../styles.scss';
 import styles from './styles.scss';
 
 const Timer = ({
-  played,
+  currentTime,
   duration,
 }) => {
   let timeStringDuration;
   let timeStringPlayed;
   if (duration !== undefined) {
-    timeStringPlayed = getTimeStringFromSeconds(Math.round(duration * (played || 0)));
+    timeStringPlayed = getTimeStringFromSeconds(Math.round(currentTime || 0));
     timeStringDuration = getTimeStringFromSeconds(Math.round(duration));
   }
   return (
@@ -38,12 +38,12 @@ const Timer = ({
 };
 
 Timer.propTypes = {
-  played: PropTypes.number,
+  currentTime: PropTypes.number,
   duration: PropTypes.number,
 };
 
 Timer.defaultProps = {
-  played: undefined,
+  currentTime: undefined,
   duration: undefined,
 };
 
