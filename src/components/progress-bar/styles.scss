@@ -6,6 +6,7 @@
   align-items: flex-end;
   cursor: pointer;
   touch-action: none;
+  outline: none;
   .progress {
     position: relative;
     height: $progress-visual-height;

@@ -58,6 +58,9 @@ export default (state = {}, { type, data }) => {
         isVolumeSliderVisible: data,
       };
     case t.CREATE_PLAYER:
+      if (state.playerStatus.hasPlayed) {
+        return state;
+      }
       return {
         ...state,
         ...data,
