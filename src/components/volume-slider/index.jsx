@@ -1,10 +1,10 @@
-/* eslint-disable jsx-a11y/click-events-have-key-events */
 import React, {
   useContext,
   useRef,
   useCallback,
   useEffect,
 } from 'react';
+import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import {
   faVolumeUp,
@@ -33,6 +33,7 @@ const VolumeSlider = ({ show }) => {
       playerControls: {
         setMuted,
         setVolume,
+        addVolume,
       },
     },
     dispatch,
@@ -61,20 +62,28 @@ const VolumeSlider = ({ show }) => {
   }, [dispatch, isChangingVolume]);
 
   const handleSliderMouseDown = useCallback((event) => {
-    const fraction = getFractionFromMouseEvent(refSliderPanel.current, event);
+    const elemSliderPanel = refSliderPanel.current;
+    const fraction = getFractionFromMouseEvent(elemSliderPanel, event);
     if (setVolume) {
       setVolume(fraction);
     }
-    event.preventDefault();
-    event.stopPropagation();
+    elemSliderPanel.focus();
   }, [setVolume]);
-  const handleSliderClick = useCallback((event) => {
+  const handleStopSliderAction = useCallback(() => {
     if (setVolume) {
       setVolume();
     }
-    event.preventDefault();
-    event.stopPropagation();
   }, [setVolume]);
+  const handleSliderKeyDown = useCallback((event) => {
+    if (!addVolume) {
+      return;
+    }
+    if (event.keyCode === 39) {
+      addVolume(0.1);
+    } else if (event.keyCode === 37) {
+      addVolume(-0.1);
+    }
+  }, [addVolume]);
 
   useEffect(() => {
     const elemSliderPanel = refSliderPanel.current;
@@ -122,8 +131,10 @@ const VolumeSlider = ({ show }) => {
         aria-valuemin={0}
         aria-valuemax={100}
         aria-valuenow={volume}
-        onClick={handleSliderClick}
         onMouseDown={handleSliderMouseDown}
+        onKeyDown={handleSliderKeyDown}
+        onKeyUp={handleStopSliderAction}
+        onClick={handleStopSliderAction}
       >
         <div className={styles.slider}>
           <div
@@ -136,6 +147,14 @@ const VolumeSlider = ({ show }) => {
       </div>
     </div>
   );
+};
+
+VolumeSlider.propTypes = {
+  show: PropTypes.bool,
+};
+
+VolumeSlider.defaultProps = {
+  show: false,
 };
 
 export default VolumeSlider;

@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import React, {
   useReducer,
   useRef,
@@ -5,11 +6,12 @@ import React, {
   useEffect,
 } from 'react';
 import PropTypes from 'prop-types';
-import _ from 'lodash';
 import classNames from 'classnames';
+import { useDebouncedCallback } from 'use-debounce';
 import urlParser from 'js-video-url-parser/lib/base';
 import 'js-video-url-parser/lib/provider/dailymotion';
 import 'js-video-url-parser/lib/provider/youtube';
+import checkIsMobile from 'ismobilejs';
 import t from './constants/actionTypes';
 import {
   isElementInViewport,
@@ -30,6 +32,7 @@ import styles from './styles.scss';
 const initialState = {
   playerStatus: {},
   playerControls: {},
+  fullPage: {},
   vttCues: {},
 };
 
@@ -61,6 +64,7 @@ const StickyVideo = ({
   const {
     isSeeking,
     isChangingVolume,
+    isVolumeSliderVisible,
     currentTime,
   } = playerStatus;
 
@@ -84,7 +88,7 @@ const StickyVideo = ({
       width,
       height,
     };
-  const isVolumeSliderVisible = playerSize.width > 400;
+  const isMobile = playerSize.width < 400 || checkIsMobile(window.navigator.userAgent).any;
 
   let videoId;
   let provider;
@@ -95,16 +99,24 @@ const StickyVideo = ({
   }
 
   const handleHideControls = useCallback(() => {
-    if (!isSeeking && !isChangingVolume) {
+    if (_.every([
+      !isSeeking,
+      !isChangingVolume,
+      !isVolumeSliderVisible,
+    ])) {
       dispatch({
         type: t.FOCUS_PLAYER,
         data: false,
       });
     }
-  }, [isSeeking, isChangingVolume]);
-  const debounceHideControls = useCallback(
-    _.debounce(handleHideControls, 3000),
-    [],
+  }, [
+    isSeeking,
+    isChangingVolume,
+    isVolumeSliderVisible,
+  ]);
+  const [debounceHideControls, cancelHideControls] = useDebouncedCallback(
+    handleHideControls,
+    3000,
   );
   const handleShowControls = useCallback(() => {
     dispatch({
@@ -127,7 +139,6 @@ const StickyVideo = ({
       }
       handleShowControls();
     }
-    event.preventDefault();
     event.stopPropagation();
   }, [handleShowControls, playerControls, playerStatus.isPlaying]);
   const handleClickFullscreen = useCallback(() => {
@@ -167,7 +178,7 @@ const StickyVideo = ({
         });
       }
     };
-    const handleMouseUp = (event) => {
+    const handleMouseUp = () => {
       if (!isFocusPlayer) {
         return;
       }
@@ -180,8 +191,7 @@ const StickyVideo = ({
           type: t.SET_VOLUME,
         });
       }
-      event.preventDefault();
-      event.stopPropagation();
+      debounceHideControls();
     };
     const handleFullScreeChange = () => {
       dispatch({
@@ -191,6 +201,7 @@ const StickyVideo = ({
     };
     document.addEventListener('scroll', handleScroll);
     document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('touchend', handleMouseUp);
     document.addEventListener('fullscreenchange', handleFullScreeChange);
     document.addEventListener('mozfullscreenchange', handleFullScreeChange);
     document.addEventListener('webkitfullscreenchange', handleFullScreeChange);
@@ -198,6 +209,7 @@ const StickyVideo = ({
     return () => {
       document.removeEventListener('scroll', handleScroll);
       document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchend', handleMouseUp);
       document.removeEventListener('fullscreenchange', handleFullScreeChange);
       document.removeEventListener('mozfullscreenchange', handleFullScreeChange);
       document.removeEventListener('webkitfullscreenchange', handleFullScreeChange);
@@ -214,13 +226,13 @@ const StickyVideo = ({
     seekTo,
     isSeeking,
     isChangingVolume,
+    debounceHideControls,
   ]);
 
   useEffect(() => {
     dispatch({
       type: t.SET_PLAYING,
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url]);
 
   let nodePlayer;
@@ -287,9 +299,9 @@ const StickyVideo = ({
             },
           )}
           style={playerSize}
-          onFocus={handleShowControls}
+          onMouseLeave={handleHideControls}
           onMouseMove={handleShowControls}
-          onMouseOver={handleShowControls}
+          onFocus={handleShowControls}
         >
           <div
             role="button"
@@ -311,10 +323,11 @@ const StickyVideo = ({
           </div>
           {!originalControls && (
             <Controls
+              cancelHideControls={cancelHideControls}
               ref={refCCButton}
               show={isShowControls}
               isFullScreen={isFullScreen || isFullPage}
-              isVolumeSliderVisible={isVolumeSliderVisible}
+              isMobile={isMobile}
               captions={captions}
               onClickFullscreen={handleClickFullscreen}
               onCancelFullscreen={handleCancelFullscreen}

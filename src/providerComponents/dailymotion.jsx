@@ -194,7 +194,7 @@ const Dailymotion = ({
       }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [player, playerVars]);
+  }, [player]);
 
   // play another video or update playerVars
   useDeepCompareEffect(() => {

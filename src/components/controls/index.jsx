@@ -26,10 +26,11 @@ const Controls = forwardRef((
   {
     show,
     isFullScreen,
-    isVolumeSliderVisible,
+    isMobile,
     captions,
     onClickFullscreen,
     onCancelFullscreen,
+    cancelHideControls,
   },
   refCCButton,
 ) => {
@@ -54,6 +55,11 @@ const Controls = forwardRef((
     [appStyles.hide]: !hasPlayed || !show,
   };
 
+  const handleMouseMove = useCallback((event) => {
+    cancelHideControls();
+    event.stopPropagation();
+  }, [cancelHideControls]);
+
   const handleShowCC = useCallback(() => {
     dispatch({
       type: t.SHOW_CC_SETTING,
@@ -74,6 +80,7 @@ const Controls = forwardRef((
           styles.container,
           containerStyle,
         )}
+        onMouseMove={handleMouseMove}
       >
         <ProgressBar
           seekTo={seekTo}
@@ -91,7 +98,7 @@ const Controls = forwardRef((
             onClick={pause}
             disabled={!pause}
           />
-          <VolumeSlider show={isVolumeSliderVisible} />
+          <VolumeSlider show={!isMobile} />
           <Timer
             currentTime={currentTime}
             duration={duration}
@@ -124,15 +131,18 @@ const Controls = forwardRef((
 Controls.propTypes = {
   show: PropTypes.bool,
   isFullScreen: PropTypes.bool,
+  isMobile: PropTypes.bool,
   // eslint-disable-next-line react/forbid-prop-types
   captions: PropTypes.array.isRequired,
   onClickFullscreen: PropTypes.func.isRequired,
   onCancelFullscreen: PropTypes.func.isRequired,
+  cancelHideControls: PropTypes.func.isRequired,
 };
 
 Controls.defaultProps = {
   show: false,
   isFullScreen: false,
+  isMobile: false,
 };
 
 export default Controls;

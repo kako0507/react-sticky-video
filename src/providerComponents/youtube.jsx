@@ -90,6 +90,23 @@ const genPlayer = ({
               data: volume,
             });
           },
+          addVolume: (value) => {
+            let volume = player.getVolume() / 100;
+            volume += value;
+            if (volume < 0) {
+              volume = 0;
+            } else if (volume > 1) {
+              volume = 1;
+            }
+            if (volume > 0 && player.muted) {
+              player.unMute();
+            }
+            player.setVolume(Math.round(volume * 100));
+            dispatch({
+              type: t.SET_VOLUME,
+              data: volume,
+            });
+          },
         },
       },
     });

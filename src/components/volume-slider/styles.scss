@@ -13,8 +13,7 @@
       margin .2s cubic-bezier(0.4,0.0,1,1),
       width .2s cubic-bezier(0.4,0.0,1,1);
     cursor: pointer;
-    outline: 0;
-    touch-action: none;
+    outline: none;
     &.active {
       width: $volume-slider-width + $volume-slider-diameter;
       margin-right: 3px;

@@ -51,25 +51,19 @@ const ProgressBar = ({
     if (seekTo) {
       seekTo(fraction);
     }
-    event.preventDefault();
-    event.stopPropagation();
   }, [seekTo]);
 
-  const handleProgressClick = useCallback((event) => {
+  const handleProgressClick = useCallback(() => {
     if (seekTo) {
       seekTo();
     }
-    event.preventDefault();
-    event.stopPropagation();
   }, [seekTo]);
 
-  const handleProgressMouseOut = useCallback((event) => {
+  const handleProgressMouseOut = useCallback(() => {
     if (!isSeeking) {
       dispatch({
         type: t.SET_HOVERED_TIME,
       });
-      event.preventDefault();
-      event.stopPropagation();
     }
   }, [dispatch, isSeeking]);
 
@@ -93,8 +87,11 @@ const ProgressBar = ({
       }
     };
     document.addEventListener('mousemove', handleProgressMouseMove);
+    document.addEventListener('touchmove', handleProgressMouseMove);
+
     return () => {
       document.removeEventListener('mousemove', handleProgressMouseMove);
+      document.removeEventListener('touchmove', handleProgressMouseMove);
     };
   }, [seekTo, isSeeking, dispatch]);
 
@@ -105,10 +102,11 @@ const ProgressBar = ({
       tabIndex="-1"
       ref={refProgressContainer}
       className={styles.progressContainer}
-      onTouchStart={handleProgressMouseDown}
       onClick={handleProgressClick}
       onMouseDown={handleProgressMouseDown}
+      onTouchStart={handleProgressMouseDown}
       onMouseOut={handleProgressMouseOut}
+      onTouchCancel={handleProgressMouseOut}
       onBlur={handleProgressMouseOut}
       aria-valuemin={0}
       aria-valuemax={100}
