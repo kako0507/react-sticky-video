@@ -19,8 +19,8 @@ import PlayCircle from '../play-circle';
 import ProgressBar from '../progress-bar';
 import IconButton from '../icon-button';
 import VolumeSlider from '../volume-slider';
-import appStyles from '../../styles.scss';
-import styles from './styles.scss';
+import appStyles from '../../app.scss';
+import styles from './controls.scss';
 import Timer from '../timer';
 
 const Controls = forwardRef((

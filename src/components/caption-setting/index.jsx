@@ -11,8 +11,8 @@ import t from '../../constants/actionTypes';
 import Store from '../../store';
 import useOnClickOutside from '../../hooks/use-onclickoutside';
 import CaptionMenuItem from './caption-menu-item';
-import appStyles from '../../styles.scss';
-import styles from './styles.scss';
+import appStyles from '../../app.scss';
+import styles from './caption-setting.scss';
 
 const CaptionSetting = ({ captions, elemCCButton }) => {
   const {

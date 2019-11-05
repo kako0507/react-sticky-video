@@ -4,8 +4,8 @@ import classNames from 'classnames';
 import {
   getTimeStringFromSeconds,
 } from '../../utils';
-import appStyles from '../../styles.scss';
-import styles from './styles.scss';
+import appStyles from '../../app.scss';
+import styles from './timer.scss';
 
 const Timer = ({
   currentTime,

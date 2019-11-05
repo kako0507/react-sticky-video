@@ -6,8 +6,8 @@ import {
   faPlayCircle,
   faCircleNotch,
 } from '@fortawesome/free-solid-svg-icons';
-import appStyles from '../../styles.scss';
-import styles from './styles.scss';
+import appStyles from '../../app.scss';
+import styles from './play-circle.scss';
 
 const PlayCircle = ({ isReady }) => (
   <>

@@ -28,7 +28,7 @@ import CaptionSetting from './components/caption-setting';
 import Youtube from './providerComponents/youtube';
 import Dailymotion from './providerComponents/dailymotion';
 import FileSource from './providerComponents/file-source';
-import styles from './styles.scss';
+import styles from './app.scss';
 
 const initialState = {
   playerStatus: {},

@@ -11,7 +11,7 @@ import PropTypes from 'prop-types';
 import t from '../constants/actionTypes';
 import Store from '../store';
 import usePlayerEvents from '../hooks/use-player-events';
-import styles from '../styles.scss';
+import styles from '../app.scss';
 
 let libLoaded;
 

@@ -2,10 +2,10 @@
 
 .container {
   >button,
-  >.slider-panel {
+  >.panel {
     vertical-align: middle;
   }
-  >.slider-panel {
+  >.panel {
     display: inline-block;
     width: 0;
     height: 100%;
@@ -21,11 +21,11 @@
         margin .2s cubic-bezier(0.0,0.0,0.2,1),
         width .2s cubic-bezier(0.0,0.0,0.2,1);
     }
-    >.slider {
+    >.content {
       height: 100%;
       position: relative;
       overflow: hidden;
-      >.slider-handle {
+      >.handle {
         position: absolute;
         top: 50%;
         width: $volume-slider-diameter;

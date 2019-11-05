@@ -2,7 +2,7 @@ import React, { useContext, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import t from '../../constants/actionTypes';
 import Store from '../../store';
-import styles from './styles.scss';
+import styles from './caption-setting.scss';
 
 const CaptionMenuItem = ({
   label,

@@ -10,7 +10,7 @@ import classNames from 'classnames';
 import vtt from 'vtt.js';
 import t from '../../constants/actionTypes';
 import Store from '../../store';
-import styles from './styles.scss';
+import styles from './track.scss';
 
 const { WebVTT, VTTCue } = vtt;
 
@@ -149,7 +149,7 @@ const Track = ({
     >
       <div
         ref={refTrack}
-        className={styles.track}
+        className={styles.content}
       />
     </div>
   );

@@ -12,8 +12,8 @@ import {
   getTimeStringFromSeconds,
 } from '../../utils';
 import Store from '../../store';
-import appStyles from '../../styles.scss';
-import styles from './styles.scss';
+import appStyles from '../../app.scss';
+import styles from './progress-bar.scss';
 
 const tooltipContainerWidth = 200;
 
@@ -95,7 +95,7 @@ const ProgressBar = ({
       role="slider"
       tabIndex="-1"
       ref={refProgressContainer}
-      className={styles.progressContainer}
+      className={styles.container}
       onClick={handleProgressClick}
       onMouseDown={handleProgressMouseDown}
       onTouchStart={handleProgressMouseDown}
@@ -106,10 +106,10 @@ const ProgressBar = ({
       aria-valuemax={100}
       aria-valuenow={currentTimePercentage}
     >
-      <div className={styles.progress}>
+      <div className={styles.rel}>
         <div
           className={classNames(
-            styles.progressLoaded,
+            styles.loaded,
             {
               [appStyles.hide]: loaded === undefined,
             },
@@ -120,7 +120,7 @@ const ProgressBar = ({
         />
         <div
           className={classNames(
-            styles.progressHover,
+            styles.hovered,
             {
               [appStyles.hide]: hoveredTime === undefined,
             },
@@ -131,7 +131,7 @@ const ProgressBar = ({
         />
         <div
           className={classNames(
-            styles.progressPlayed,
+            styles.played,
             {
               [appStyles.hide]: currentTime === undefined,
             },
@@ -140,7 +140,7 @@ const ProgressBar = ({
             width: `${currentTimePercentage}%`,
           }}
         >
-          <div className={styles.progressDot} />
+          <div className={styles.dot} />
         </div>
         <div
           className={classNames(

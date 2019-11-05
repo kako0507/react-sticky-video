@@ -16,7 +16,7 @@ import {
 } from '../../utils';
 import Store from '../../store';
 import IconButton from '../icon-button';
-import styles from './styles.scss';
+import styles from './volume-slider.scss';
 import variables from '../../variables.scss';
 import usePlayerControls from '../../hooks/use-player-controls';
 
@@ -118,7 +118,7 @@ const VolumeSlider = ({ show }) => {
         role="slider"
         tabIndex="0"
         className={classNames(
-          styles.sliderPanel,
+          styles.panel,
           {
             [styles.active]: show && isVolumeSliderVisible,
           },
@@ -131,9 +131,9 @@ const VolumeSlider = ({ show }) => {
         onKeyUp={handleStopSliderAction}
         onClick={handleStopSliderAction}
       >
-        <div className={styles.slider}>
+        <div className={styles.content}>
           <div
-            className={styles.sliderHandle}
+            className={styles.handle}
             style={{
               left: (isMuted || !volume) ? 0 : volume * volumeSliderWidth,
             }}

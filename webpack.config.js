@@ -69,7 +69,7 @@ module.exports = (env, argv) => ({
               localsConvention: 'camelCase',
               modules: {
                 mode: 'local',
-                localIdentName: 'sticky-video--[local]--[hash:base64:5]',
+                localIdentName: 'sv-[name]-[local]-[hash:base64:5]',
               },
             },
           },

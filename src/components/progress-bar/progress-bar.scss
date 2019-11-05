@@ -1,13 +1,13 @@
 @import "../../variables.scss";
 
-.progress-container {
+.container {
   height: $progress-height;
   display: flex;
   align-items: flex-end;
   cursor: pointer;
   touch-action: none;
   outline: none;
-  .progress {
+  .rel {
     position: relative;
     height: $progress-visual-height;
     width: 100%;
@@ -19,10 +19,10 @@
     &::after {
       content: "";
       position: absolute;
-      top: ($progress-visual-height - $progress-hover-height) / 2;
+      top: ($progress-visual-height - $progress-hovered-height) / 2;
       left: 0;
       width: 100%;
-      height: $progress-hover-height;
+      height: $progress-hovered-height;
       display: none;
     }
   }
@@ -38,25 +38,25 @@
       display: inline-block;
     }
   }
-  .progress::before,
-  .progress-loaded,
-  .progress-hover,
-  .progress-played {
+  .rel::before,
+  .loaded,
+  .hovered,
+  .played {
     position: absolute;
     top: 0;
     left: 0;
     height: 100%;
   }
-  .progress-loaded {
+  .loaded {
     background-color: $progress-loaded-color;
   }
-  .progress-hover {
-    background-color: $progress-hover-color;
+  .hovered {
+    background-color: $progress-hovered-color;
   }
-  .progress-played {
+  .played {
     background-color: $progress-played-color;
   }
-  .progress-dot {
+  .dot {
     position: relative;
     width: 100%;
     height: 100%;
@@ -64,7 +64,7 @@
     &::after {
       content: "";
       position: absolute;
-      top: ($progress-hover-visual-height - $progress-dot-height) / 2;
+      top: ($progress-hovered-visual-height - $progress-dot-height) / 2;
       right: -$progress-dot-height / 2;
       height: $progress-dot-height;
       width: $progress-dot-height;
@@ -74,15 +74,15 @@
     }
   }
   &:hover {
-    .progress::before,
-    .progress-loaded,
-    .progress-hover,
-    .progress-played {
-      top: ($progress-visual-height - $progress-hover-visual-height) / 2;
-      height: $progress-hover-visual-height;
+    .rel::before,
+    .loaded,
+    .hovered,
+    .played {
+      top: ($progress-visual-height - $progress-hovered-visual-height) / 2;
+      height: $progress-hovered-visual-height;
     }
-    .progress::after,
-    .progress-dot {
+    .rel::after,
+    .dot {
       display: block;
     }
   }
