@@ -18,6 +18,7 @@ import Store from '../../store';
 import IconButton from '../icon-button';
 import styles from './styles.scss';
 import variables from '../../variables.scss';
+import usePlayerControls from '../../hooks/use-player-controls';
 
 const [volumeSliderWidth] = variables.volumeSliderWidth.split('px');
 
@@ -30,14 +31,14 @@ const VolumeSlider = ({ show }) => {
         volume,
         isChangingVolume,
       },
-      playerControls: {
-        setMuted,
-        setVolume,
-        addVolume,
-      },
     },
     dispatch,
   } = useContext(Store);
+  const {
+    setMuted,
+    setVolume,
+    addVolume,
+  } = usePlayerControls(dispatch);
   const refSliderPanel = useRef(null);
 
   const setToMuted = useCallback(() => {
@@ -64,15 +65,11 @@ const VolumeSlider = ({ show }) => {
   const handleSliderMouseDown = useCallback((event) => {
     const elemSliderPanel = refSliderPanel.current;
     const fraction = getFractionFromMouseEvent(elemSliderPanel, event);
-    if (setVolume) {
-      setVolume(fraction);
-    }
+    setVolume(fraction);
     elemSliderPanel.focus();
   }, [setVolume]);
   const handleStopSliderAction = useCallback(() => {
-    if (setVolume) {
-      setVolume();
-    }
+    setVolume();
   }, [setVolume]);
   const handleSliderKeyDown = useCallback((event) => {
     if (!addVolume) {
@@ -89,10 +86,8 @@ const VolumeSlider = ({ show }) => {
     const elemSliderPanel = refSliderPanel.current;
     const handleSliderMouseMove = (event) => {
       if (isChangingVolume) {
-        if (setVolume) {
-          const fraction = getFractionFromMouseEvent(elemSliderPanel, event);
-          setVolume(fraction);
-        }
+        const fraction = getFractionFromMouseEvent(elemSliderPanel, event);
+        setVolume(fraction);
       }
     };
     document.addEventListener('mousemove', handleSliderMouseMove);

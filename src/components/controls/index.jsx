@@ -14,6 +14,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import t from '../../constants/actionTypes';
 import Store from '../../store';
+import usePlayerControls from '../../hooks/use-player-controls';
 import PlayCircle from '../play-circle';
 import ProgressBar from '../progress-bar';
 import IconButton from '../icon-button';
@@ -24,6 +25,7 @@ import Timer from '../timer';
 
 const Controls = forwardRef((
   {
+    isReady,
     show,
     isFullScreen,
     isMobile,
@@ -42,14 +44,15 @@ const Controls = forwardRef((
         currentTime,
         duration,
       },
-      playerControls: {
-        play,
-        pause,
-        seekTo,
-      },
     },
     dispatch,
   } = useContext(Store);
+
+  const {
+    play,
+    pause,
+    seekTo,
+  } = usePlayerControls(dispatch);
 
   const containerStyle = {
     [appStyles.hide]: !hasPlayed || !show,
@@ -68,7 +71,7 @@ const Controls = forwardRef((
 
   return (
     <>
-      {!hasPlayed && <PlayCircle />}
+      {!hasPlayed && <PlayCircle isReady={isReady} />}
       <div
         className={classNames(
           styles.gradientBottom,
@@ -82,21 +85,17 @@ const Controls = forwardRef((
         )}
         onMouseMove={handleMouseMove}
       >
-        <ProgressBar
-          seekTo={seekTo}
-        />
+        <ProgressBar seekTo={seekTo} />
         <div className={styles.buttons}>
           <IconButton
             icon={faPlay}
             hide={isPlaying}
             onClick={play}
-            disabled={!play}
           />
           <IconButton
             icon={faPause}
             hide={!isPlaying}
             onClick={pause}
-            disabled={!pause}
           />
           <VolumeSlider show={!isMobile} />
           <Timer
@@ -129,6 +128,7 @@ const Controls = forwardRef((
 });
 
 Controls.propTypes = {
+  isReady: PropTypes.bool,
   show: PropTypes.bool,
   isFullScreen: PropTypes.bool,
   isMobile: PropTypes.bool,
@@ -140,6 +140,7 @@ Controls.propTypes = {
 };
 
 Controls.defaultProps = {
+  isReady: false,
   show: false,
   isFullScreen: false,
   isMobile: false,

@@ -10,6 +10,7 @@ import useDeepCompareEffect from 'use-deep-compare-effect';
 import PropTypes from 'prop-types';
 import t from '../constants/actionTypes';
 import Store from '../store';
+import usePlayerEvents from '../hooks/use-player-events';
 import styles from '../styles.scss';
 
 let libLoaded;
@@ -19,7 +20,7 @@ const genPlayer = ({
   videoId,
   playerVars,
   controls,
-  dispatch,
+  events,
   setPlayer,
 }) => {
   const player = DM.player(elemPlayer, {
@@ -34,83 +35,48 @@ const genPlayer = ({
     },
   });
 
-  const handleReadyEvent = () => {
-    dispatch({
-      type: t.CREATE_PLAYER,
-      data: {
-        playerStatus: {
-          duration: player.duration,
-          isMuted: player.muted,
-          volume: player.volume,
+  const onReady = () => {
+    events.onReady(
+      player.duration,
+      player.muted,
+      player.volume,
+      {
+        play: () => {
+          player.play();
         },
-        playerControls: {
-          play: () => {
-            player.play();
-          },
-          pause: () => {
+        pause: () => {
+          player.pause();
+        },
+        seekTo: (second, isSeeking, isPlaying) => {
+          player.seek(second);
+          if (isSeeking && !player.paused) {
             player.pause();
-          },
-          seekTo: (fraction) => {
-            dispatch({
-              type: t.SEEK_TO_FRACTION,
-              data: {
-                fraction,
-                handler: (second, isSeeking, isPlaying) => {
-                  player.seek(second);
-                  if (isSeeking && !player.paused) {
-                    player.pause();
-                  }
-                  if (!isSeeking && isPlaying) {
-                    player.play();
-                  }
-                },
-              },
-            });
-          },
-          setMuted: (isMuted) => {
-            player.setMuted(isMuted);
-            dispatch({
-              type: t.SET_MUTE,
-              data: isMuted,
-            });
-          },
-          setVolume: (volume) => {
-            if (volume !== undefined) {
-              player.setVolume(volume);
-              if (volume > 0 && player.muted) {
-                player.setMute(false);
-              }
+          }
+          if (!isSeeking && isPlaying) {
+            player.play();
+          }
+        },
+        setMuted: (isMuted) => {
+          player.setMuted(isMuted);
+        },
+        setVolume: (volume) => {
+          if (volume !== undefined) {
+            player.setVolume(volume);
+            if (volume > 0 && player.muted) {
+              player.setMute(false);
             }
-            dispatch({
-              type: t.SET_VOLUME,
-              data: volume,
-            });
-          },
+          }
         },
       },
-    });
+    );
   };
-  const handleTimeUpdateEvent = () => {
-    dispatch({
-      type: t.SET_CURRENT_TIME,
-      data: {
-        currentTime: player.currentTime,
-      },
-    });
+  const onDurationChange = () => {
+    events.onDurationChange(player.duration);
   };
-  const handlePlayEvent = () => {
-    dispatch({
-      type: t.SET_PLAYING,
-      data: true,
-    });
+  const onTimeUpdate = () => {
+    events.onTimeUpdate(player.currentTime);
   };
-  const handlePauseEvent = () => {
-    dispatch({
-      type: t.SET_PLAYING,
-      data: false,
-    });
-  };
-  const handleProgressUpdate = () => {
+  const onProgressUpdate = () => {
     const {
       bufferedTime,
       duration,
@@ -119,35 +85,26 @@ const genPlayer = ({
     if (bufferedTime && duration) {
       loaded = bufferedTime / duration;
     }
-    dispatch({
-      type: t.SET_LOADED_PERCENTAGE,
-      data: loaded,
-    });
-  };
-  const handleDurationChange = () => {
-    dispatch({
-      type: t.SET_DURATION,
-      data: player.duration,
-    });
+    events.onProgressUpdate(loaded);
   };
 
-  player.addEventListener('apiready', handleReadyEvent);
-  player.addEventListener('timeupdate', handleTimeUpdateEvent);
-  player.addEventListener('play', handlePlayEvent);
-  player.addEventListener('pause', handlePauseEvent);
-  player.addEventListener('end', handlePauseEvent);
-  player.addEventListener('progress', handleProgressUpdate);
-  player.addEventListener('durationchange', handleDurationChange);
+  player.addEventListener('apiready', onReady);
+  player.addEventListener('durationchange', onDurationChange);
+  player.addEventListener('timeupdate', onTimeUpdate);
+  player.addEventListener('progress', onProgressUpdate);
+  player.addEventListener('play', events.onPlay);
+  player.addEventListener('pause', events.onPause);
+  player.addEventListener('end', events.onPause);
   setPlayer({
     element: player,
     removeEventListeners: () => {
-      player.removeEventListener('apiready', handleReadyEvent);
-      player.removeEventListener('timeupdate', handleTimeUpdateEvent);
-      player.removeEventListener('play', handlePlayEvent);
-      player.removeEventListener('pause', handlePauseEvent);
-      player.removeEventListener('end', handlePauseEvent);
-      player.removeEventListener('progress', handleProgressUpdate);
-      player.removeEventListener('durationchange', handleDurationChange);
+      player.removeEventListener('apiready', onReady);
+      player.removeEventListener('durationchange', onDurationChange);
+      player.removeEventListener('timeupdate', onTimeUpdate);
+      player.removeEventListener('progress', onProgressUpdate);
+      player.removeEventListener('play', events.onPlay);
+      player.removeEventListener('pause', events.onPause);
+      player.removeEventListener('end', events.onPause);
     },
   });
 };
@@ -160,6 +117,7 @@ const Dailymotion = ({
   const { dispatch } = useContext(Store);
   const [player, setPlayer] = useState({});
   const refPlayer = useRef(null);
+  const events = usePlayerEvents(dispatch);
 
   // create the dailymotion player
   useEffect(() => {
@@ -169,7 +127,7 @@ const Dailymotion = ({
         videoId,
         playerVars,
         controls,
-        dispatch,
+        events,
         setPlayer,
       };
       if (libLoaded) {

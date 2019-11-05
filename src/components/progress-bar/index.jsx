@@ -48,15 +48,11 @@ const ProgressBar = ({
 
   const handleProgressMouseDown = useCallback((event) => {
     const fraction = getFractionFromMouseEvent(refProgressContainer.current, event);
-    if (seekTo) {
-      seekTo(fraction);
-    }
+    seekTo(fraction);
   }, [seekTo]);
 
   const handleProgressClick = useCallback(() => {
-    if (seekTo) {
-      seekTo();
-    }
+    seekTo();
   }, [seekTo]);
 
   const handleProgressMouseOut = useCallback(() => {
@@ -71,10 +67,8 @@ const ProgressBar = ({
     const elemProgress = refProgressContainer.current;
     const handleProgressMouseMove = (event) => {
       if (isSeeking) {
-        if (seekTo) {
-          const fraction = getFractionFromMouseEvent(elemProgress, event);
-          seekTo(fraction);
-        }
+        const fraction = getFractionFromMouseEvent(elemProgress, event);
+        seekTo(fraction);
       } else {
         const isInProgressBar = elemProgress.contains(event.target);
         if (isInProgressBar) {

@@ -67,15 +67,26 @@ export default (state = {}, { type, data }) => {
       };
     case t.SET_PLAYING: {
       const { isSeeking } = state.playerStatus;
-      const isPlaying = data;
+      const { isPlaying, hasAlreadyChanged } = (data || {});
       let { hasPlayed } = state.playerStatus;
       if (isSeeking) {
         return state;
       }
-      if (isPlaying === undefined) {
+      if (data === undefined) {
         hasPlayed = false;
       } else if (isPlaying) {
         hasPlayed = true;
+      }
+      if (data && !hasAlreadyChanged) {
+        const { play, pause } = state.playerControls;
+        if (!play || !pause) {
+          return state;
+        }
+        if (isPlaying) {
+          play();
+        } else {
+          pause();
+        }
       }
       return update(state, {
         playerStatus: {
@@ -131,13 +142,19 @@ export default (state = {}, { type, data }) => {
       });
     }
     case t.SEEK_TO_FRACTION: {
-      const { duration, currentTime, isPlaying } = state.playerStatus;
-      const { fraction, handler } = data;
+      const {
+        playerStatus: { duration, currentTime, isPlaying },
+        playerControls: { seekTo },
+      } = state;
+      if (!seekTo) {
+        return state;
+      }
+      const fraction = data;
       const time = fraction === undefined
         ? currentTime
         : duration * fraction;
       const isSeeking = !!fraction;
-      handler(time, isSeeking, isPlaying);
+      seekTo(time, isSeeking, isPlaying);
       return update(state, {
         playerStatus: {
           $merge: {
@@ -148,7 +165,12 @@ export default (state = {}, { type, data }) => {
         },
       });
     }
-    case t.SET_MUTE:
+    case t.SET_MUTE: {
+      const { setMuted } = state.playerControls;
+      if (!setMuted) {
+        return state;
+      }
+      setMuted(data);
       return update(state, {
         playerStatus: {
           isMuted: {
@@ -156,14 +178,20 @@ export default (state = {}, { type, data }) => {
           },
         },
       });
+    }
     case t.SET_VOLUME: {
+      const { setVolume } = state.playerControls;
       let volume = data;
       let isChangingVolume;
+      if (!setVolume) {
+        return state;
+      }
       if (volume === undefined) {
         ({ volume } = state.playerStatus);
         isChangingVolume = false;
       } else {
         isChangingVolume = true;
+        setVolume(volume);
       }
       return update(state, {
         playerStatus: {
@@ -171,6 +199,29 @@ export default (state = {}, { type, data }) => {
             volume,
             isMuted: volume === 0,
             isChangingVolume,
+          },
+        },
+      });
+    }
+    case t.ADD_VOLUME: {
+      const { setVolume } = state.playerControls;
+      let { volume } = state.playerStatus || 0;
+      if (!setVolume) {
+        return state;
+      }
+      volume += data;
+      if (volume < 0) {
+        volume = 0;
+      } else if (volume > 1) {
+        volume = 1;
+      }
+      setVolume(volume);
+      return update(state, {
+        playerStatus: {
+          $merge: {
+            volume,
+            isMuted: volume === 0,
+            isChangingVolume: true,
           },
         },
       });

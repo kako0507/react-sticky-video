@@ -16,6 +16,7 @@ export default _.mapKeys(
     'SEEK_TO_FRACTION',
     'SET_MUTE',
     'SET_VOLUME',
+    'ADD_VOLUME',
     'DESTROY_PLAYER',
 
     'SET_WEBVTT_CUES',

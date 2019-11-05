@@ -7,6 +7,7 @@ import React, {
 import PropTypes from 'prop-types';
 import t from '../constants/actionTypes';
 import Store from '../store';
+import usePlayerEvents from '../hooks/use-player-events';
 
 const FileSource = ({
   source,
@@ -15,115 +16,72 @@ const FileSource = ({
 }) => {
   const { dispatch } = useContext(Store);
   const refPlayer = useRef(null);
+  const events = usePlayerEvents(dispatch);
   const multiSource = Array.isArray(source);
 
   useEffect(() => {
     const elemPlayer = refPlayer.current;
-    const handleReadyEvent = () => {
-      dispatch({
-        type: t.CREATE_PLAYER,
-        data: {
-          playerStatus: {
-            duration: elemPlayer.duration,
-            isMuted: elemPlayer.muted,
-            volume: elemPlayer.volume,
+    const onReady = () => {
+      events.onReady(
+        elemPlayer.duration,
+        elemPlayer.muted,
+        elemPlayer.volume,
+        {
+          play: () => {
+            elemPlayer.play();
           },
-          playerControls: {
-            play: () => {
-              elemPlayer.play();
-            },
-            pause: () => {
+          pause: () => {
+            elemPlayer.pause();
+          },
+          seekTo: (second, isSeeking, isPlaying) => {
+            elemPlayer.currentTime = second;
+            if (isSeeking && !elemPlayer.paused) {
               elemPlayer.pause();
-            },
-            seekTo: (fraction) => {
-              dispatch({
-                type: t.SEEK_TO_FRACTION,
-                data: {
-                  fraction,
-                  handler: (second, isSeeking, isPlaying) => {
-                    elemPlayer.currentTime = second;
-                    if (isSeeking && !elemPlayer.paused) {
-                      elemPlayer.pause();
-                    }
-                    if (!isSeeking && isPlaying) {
-                      elemPlayer.play();
-                    }
-                  },
-                },
-              });
-            },
-            setMuted: (isMuted) => {
-              elemPlayer.muted = isMuted;
-              dispatch({
-                type: t.SET_MUTE,
-                data: isMuted,
-              });
-            },
-            setVolume: (volume) => {
-              elemPlayer.volume = volume;
-              if (volume > 0 && elemPlayer.muted) {
-                elemPlayer.muted = false;
-              }
-              dispatch({
-                type: t.SET_VOLUME,
-                data: volume,
-              });
-            },
+            }
+            if (!isSeeking && isPlaying) {
+              elemPlayer.play();
+            }
+          },
+          setMuted: (isMuted) => {
+            elemPlayer.muted = isMuted;
+          },
+          setVolume: (volume) => {
+            elemPlayer.volume = volume;
+            if (volume > 0 && elemPlayer.muted) {
+              elemPlayer.muted = false;
+            }
           },
         },
-      });
+      );
     };
-    const handleTimeUpdateEvent = () => {
-      dispatch({
-        type: t.SET_CURRENT_TIME,
-        data: {
-          currentTime: elemPlayer.currentTime,
-        },
-      });
+    const onDurationChange = () => {
+      events.onDurationChange(elemPlayer.duration);
     };
-    const handlePlayEvent = () => {
-      dispatch({
-        type: t.SET_PLAYING,
-        data: true,
-      });
+    const onTimeUpdate = () => {
+      events.onTimeUpdate(elemPlayer.currentTime);
     };
-    const handlePauseEvent = () => {
-      dispatch({
-        type: t.SET_PLAYING,
-        data: false,
-      });
-    };
-    const handleProgressUpdateEvent = () => {
+    const onProgressUpdate = () => {
       const { buffered, duration } = elemPlayer;
       let loaded = 0;
       if (buffered?.length && duration) {
         loaded = elemPlayer.buffered.end(0) / duration;
       }
-      dispatch({
-        type: t.SET_LOADED_PERCENTAGE,
-        data: loaded,
-      });
-    };
-    const handleDurationChangeEvent = () => {
-      dispatch({
-        type: t.SET_DURATION,
-        data: elemPlayer.duration,
-      });
+      events.onProgressUpdate(loaded);
     };
 
-    elemPlayer.addEventListener('canplay', handleReadyEvent);
-    elemPlayer.addEventListener('durationchange', handleDurationChangeEvent);
-    elemPlayer.addEventListener('progress', handleProgressUpdateEvent);
-    elemPlayer.addEventListener('timeupdate', handleTimeUpdateEvent);
-    elemPlayer.addEventListener('play', handlePlayEvent);
-    elemPlayer.addEventListener('pause', handlePauseEvent);
+    elemPlayer.addEventListener('canplay', onReady);
+    elemPlayer.addEventListener('durationchange', onDurationChange);
+    elemPlayer.addEventListener('timeupdate', onTimeUpdate);
+    elemPlayer.addEventListener('progress', onProgressUpdate);
+    elemPlayer.addEventListener('play', events.onPlay);
+    elemPlayer.addEventListener('pause', events.onPause);
     return () => {
-      elemPlayer.removeEventListener('canplay', handleReadyEvent);
-      elemPlayer.removeEventListener('durationchange', handleDurationChangeEvent);
-      elemPlayer.removeEventListener('progress', handleProgressUpdateEvent);
-      elemPlayer.removeEventListener('timeupdate', handleTimeUpdateEvent);
-      elemPlayer.removeEventListener('play', handlePlayEvent);
-      elemPlayer.removeEventListener('pause', handlePauseEvent);
+      elemPlayer.removeEventListener('canplay', onReady);
+      elemPlayer.removeEventListener('durationchange', onDurationChange);
+      elemPlayer.removeEventListener('timeupdate', onTimeUpdate);
+      elemPlayer.removeEventListener('progress', onProgressUpdate);
+      elemPlayer.removeEventListener('play', events.onPlay);
+      elemPlayer.removeEventListener('pause', events.onPause);
       dispatch({
         type: t.DESTROY_PLAYER,
       });

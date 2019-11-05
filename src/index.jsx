@@ -21,6 +21,7 @@ import {
 } from './utils';
 import Store from './store';
 import reducer from './reducer';
+import usePlayerControls from './hooks/use-player-controls';
 import Track from './components/track';
 import Controls from './components/controls';
 import CaptionSetting from './components/caption-setting';
@@ -57,26 +58,25 @@ const StickyVideo = ({
     fullPage,
     isFocusPlayer,
     selectedCaption,
-    playerStatus,
-    playerControls,
+    playerStatus: {
+      isReady,
+      isPlaying,
+      isSeeking,
+      isChangingVolume,
+      isVolumeSliderVisible,
+      currentTime,
+    },
   } = state;
 
   const {
-    isSeeking,
-    isChangingVolume,
-    isVolumeSliderVisible,
-    currentTime,
-  } = playerStatus;
-
-  const {
     seekTo,
-  } = playerControls;
+  } = usePlayerControls(dispatch);
 
   const refHidden = useRef(null);
   const refPlayerContainer = useRef(null);
   const refCCButton = useRef(null);
 
-  const isShowControls = isFocusPlayer || !playerStatus.isPlaying;
+  const isShowControls = isFocusPlayer || !isPlaying;
   const isFullPage = fullPage?.open;
 
   const playerSize = isSticky
@@ -126,21 +126,22 @@ const StickyVideo = ({
     debounceHideControls();
   }, [debounceHideControls]);
   const handlePlayerControl = useCallback((event) => {
+    const playing = !isPlaying;
     if (event.type === 'keypress' && event.charCode !== 32) {
       return;
     }
-    if (playerStatus.isPlaying) {
-      if (playerControls.pause) {
-        playerControls.pause();
-      }
-    } else {
-      if (playerControls.play) {
-        playerControls.play();
-      }
+    dispatch({
+      type: t.SET_PLAYING,
+      data: {
+        isPlaying: playing,
+        hasAlreadyChanged: false,
+      },
+    });
+    if (playing) {
       handleShowControls();
     }
     event.stopPropagation();
-  }, [handleShowControls, playerControls, playerStatus.isPlaying]);
+  }, [handleShowControls, isPlaying]);
   const handleClickFullscreen = useCallback(() => {
     const support = openFullscreen(refPlayerContainer.current);
     if (!support) {
@@ -164,7 +165,7 @@ const StickyVideo = ({
     const element = refHidden.current;
     const handleScroll = () => {
       if (!isSticky && !isElementInViewport(element)) {
-        if (playerStatus.isPlaying) {
+        if (isPlaying) {
           dispatch({
             type: t.SET_STICKY,
             data: true,
@@ -183,9 +184,7 @@ const StickyVideo = ({
         return;
       }
       if (isSeeking) {
-        if (seekTo) {
-          seekTo();
-        }
+        seekTo();
       } else if (isChangingVolume) {
         dispatch({
           type: t.SET_VOLUME,
@@ -217,7 +216,6 @@ const StickyVideo = ({
     };
   }, [
     isSticky,
-    playerStatus.isPlaying,
     width,
     height,
     stickyWidth,
@@ -227,6 +225,7 @@ const StickyVideo = ({
     isSeeking,
     isChangingVolume,
     debounceHideControls,
+    isPlaying,
   ]);
 
   useEffect(() => {
@@ -281,7 +280,10 @@ const StickyVideo = ({
       >
         <div
           ref={refHidden}
-          className={styles.hidden}
+          className={classNames(
+            styles.hidden,
+            { [styles.loading]: !isReady },
+          )}
         />
         <div
           role="button"
@@ -310,10 +312,11 @@ const StickyVideo = ({
               styles.playerContainer,
               {
                 [styles.seeking]: !originalControls && _.some([
-                  playerStatus.isSeeking,
-                  playerStatus.isChangingVolume,
-                  playerStatus.isPlaying,
+                  isSeeking,
+                  isChangingVolume,
+                  isPlaying,
                 ]),
+                [styles.hide]: !isReady,
               },
             )}
             onClick={handlePlayerControl}
@@ -323,14 +326,15 @@ const StickyVideo = ({
           </div>
           {!originalControls && (
             <Controls
-              cancelHideControls={cancelHideControls}
               ref={refCCButton}
+              isReady={isReady}
               show={isShowControls}
               isFullScreen={isFullScreen || isFullPage}
               isMobile={isMobile}
               captions={captions}
               onClickFullscreen={handleClickFullscreen}
               onCancelFullscreen={handleCancelFullscreen}
+              cancelHideControls={cancelHideControls}
             />
           )}
           {selectedCaption && captions?.length > 0 && (

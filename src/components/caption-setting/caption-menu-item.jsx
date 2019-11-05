@@ -20,8 +20,9 @@ const CaptionMenuItem = ({
   }, [dispatch, label]);
 
   return (
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events
     <div
-      tabIndex="0"
+      tabIndex="-1"
       role="menuitemradio"
       className={styles.menuItem}
       aria-checked={selectedCaption === label}

@@ -9,7 +9,7 @@ import classNames from 'classnames';
 import useDeepCompareEffect from 'use-deep-compare-effect';
 import t from '../../constants/actionTypes';
 import Store from '../../store';
-import useOnClickOutside from '../../hooks/useOnClickOutside';
+import useOnClickOutside from '../../hooks/use-onclickoutside';
 import CaptionMenuItem from './caption-menu-item';
 import appStyles from '../../styles.scss';
 import styles from './styles.scss';
