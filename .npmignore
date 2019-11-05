@@ -4,4 +4,4 @@ yarn.lock
 webpack.config.js
 src
 example
-build
+gh-pages
