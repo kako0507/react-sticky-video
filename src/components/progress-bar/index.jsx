@@ -1,5 +1,5 @@
 import {
-  use,
+  useContext,
   useRef,
   useCallback,
   useEffect,
@@ -30,7 +30,7 @@ const ProgressBar = ({
       },
     },
     dispatch,
-  } = use(Store);
+  } = useContext(Store);
   const refProgressContainer = useRef(null);
   let currentTimePercentage;
   let hoveredTimePercentage;

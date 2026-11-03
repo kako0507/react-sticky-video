@@ -1,5 +1,5 @@
 import {
-  use,
+  useContext,
   useRef,
   useCallback,
   useEffect,
@@ -16,7 +16,7 @@ const CaptionSetting = ({ captions, refCCButton }) => {
   const {
     state: { isShowingCCSetting },
     dispatch,
-  } = use(Store);
+  } = useContext(Store);
   const refPanel = useRef(null);
 
   const close = useCallback(() => {

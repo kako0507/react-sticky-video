@@ -1,4 +1,4 @@
-import { use, useEffect, useRef } from 'react';
+import { useContext, useEffect, useRef } from 'react';
 import t from '../constants/actionTypes';
 import Store from '../store';
 import usePlayerEvents from '../hooks/use-player-events';
@@ -128,7 +128,7 @@ const Youtube = ({
   playerVars,
   controls,
 }) => {
-  const { dispatch } = use(Store);
+  const { dispatch } = useContext(Store);
   const events = usePlayerEvents(dispatch);
   const refContainer = useRef(null);
   const refPlayer = useRef(null);

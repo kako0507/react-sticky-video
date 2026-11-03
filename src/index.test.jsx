@@ -124,6 +124,81 @@ describe('<StickyVideo /> with a file source', () => {
   });
 });
 
+describe('<StickyVideo /> dragging the floating player', () => {
+  beforeEach(() => {
+    Object.defineProperty(document.documentElement, 'clientWidth', { configurable: true, value: 1000 });
+    Object.defineProperty(document.documentElement, 'clientHeight', { configurable: true, value: 800 });
+  });
+
+  afterEach(() => {
+    delete document.documentElement.clientWidth;
+    delete document.documentElement.clientHeight;
+    vi.restoreAllMocks();
+  });
+
+  const renderFloating = (props) => {
+    const utils = render(<StickyVideo url="trailer.mp4" {...props} />);
+    const video = utils.container.querySelector('video');
+    fireEvent(video, new Event('canplay'));
+    fireEvent(video, new Event('play'));
+    mockOutOfViewport();
+    fireEvent.scroll(document);
+    return { ...utils, video, surface: getPlayerContainer(utils.container) };
+  };
+
+  const drag = (element, { from, to }) => {
+    fireEvent.pointerDown(element, { pointerId: 1, button: 0, pointerType: 'mouse', clientX: from[0], clientY: from[1] });
+    // the pointer leaves the player as soon as it moves
+    fireEvent.pointerMove(document.body, { pointerId: 1, pointerType: 'mouse', clientX: to[0], clientY: to[1] });
+    fireEvent.pointerUp(document.body, { pointerId: 1, pointerType: 'mouse', clientX: to[0], clientY: to[1] });
+    fireEvent.click(element);
+  };
+
+  it('moves the floating player without toggling playback', () => {
+    const { container, video, surface } = renderFloating();
+    expect(getPlayer(container)).toHaveClass('sticky');
+    expect(surface).toHaveClass('draggable');
+
+    drag(surface, { from: [900, 700], to: [700, 500] });
+
+    expect(getPlayer(container).style.translate).toBe('-200px -200px');
+    expect(video.pause).not.toHaveBeenCalled();
+  });
+
+  it('keeps the player inside the viewport', () => {
+    const { container, surface } = renderFloating();
+    drag(surface, { from: [900, 700], to: [-5000, -5000] });
+    // bottom-right corner: left 660 / top 600, edge margin 8px
+    expect(getPlayer(container).style.translate).toBe('-652px -592px');
+  });
+
+  it('still toggles playback on a plain click', () => {
+    const { video, surface } = renderFloating();
+    fireEvent.pointerDown(surface, { pointerId: 1, button: 0, pointerType: 'mouse', clientX: 900, clientY: 700 });
+    fireEvent.pointerMove(surface, { pointerId: 1, pointerType: 'mouse', clientX: 901, clientY: 701 });
+    fireEvent.pointerUp(surface, { pointerId: 1, pointerType: 'mouse', clientX: 901, clientY: 701 });
+    fireEvent.click(surface);
+    expect(video.pause).toHaveBeenCalledOnce();
+  });
+
+  it('can be turned off with stickyConfig.draggable', () => {
+    const { container, video, surface } = renderFloating({ stickyConfig: { draggable: false } });
+    expect(surface).not.toHaveClass('draggable');
+    drag(surface, { from: [900, 700], to: [700, 500] });
+    expect(getPlayer(container).style.translate).toBe('');
+    // without dragging, the click goes through as usual
+    expect(video.pause).toHaveBeenCalledOnce();
+  });
+
+  it('is not draggable while docked in the page', () => {
+    const { container } = render(<StickyVideo url="trailer.mp4" />);
+    const surface = getPlayerContainer(container);
+    expect(surface).not.toHaveClass('draggable');
+    drag(surface, { from: [100, 100], to: [300, 300] });
+    expect(getPlayer(container).style.translate).toBe('');
+  });
+});
+
 describe('<StickyVideo /> volume slider', () => {
   const mockPointer = (coarse) => {
     vi.stubGlobal('matchMedia', vi.fn((query) => ({

@@ -1,4 +1,4 @@
-import { use, useCallback } from 'react';
+import { useContext, useCallback } from 'react';
 import clsx from 'clsx';
 import {
   faPlay,
@@ -19,7 +19,7 @@ import appStyles from '../../app.module.scss';
 import styles from './controls.module.scss';
 
 const Controls = ({
-  ref,
+  ccButtonRef,
   isReady = false,
   show = false,
   isFullScreen = false,
@@ -39,7 +39,7 @@ const Controls = ({
       },
     },
     dispatch,
-  } = use(Store);
+  } = useContext(Store);
 
   const { play, pause, seekTo } = usePlayerControls(dispatch);
 
@@ -95,7 +95,7 @@ const Controls = ({
           />
           <div className={styles.flex1} />
           {hasCaptions && (
-            <div ref={ref}>
+            <div ref={ccButtonRef}>
               <IconButton
                 icon={faClosedCaptioning}
                 label="Captions"

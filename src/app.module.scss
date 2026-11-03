@@ -52,6 +52,14 @@
     &.seeking iframe {
       pointer-events: none;
     }
+    &.draggable {
+      cursor: grab;
+      // let the finger move the player instead of scrolling the page
+      touch-action: none;
+    }
+    &.dragging {
+      cursor: grabbing;
+    }
   }
 
   >.sticky {
