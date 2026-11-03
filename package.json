@@ -1,6 +1,6 @@
 {
   "name": "react-sticky-video",
-  "version": "1.0.0",
+  "version": "0.0.0-development",
   "description": "A React component for creating sticky, floating videos with ease.",
   "author": "Tim Kuo <kako0507@gmail.com>",
   "keywords": [
@@ -51,7 +51,7 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "prepublishOnly": "npm run lint && npm test && npm run build"
+    "prepublishOnly": "node -e \"if (process.env.npm_package_version.startsWith('0.0.0')) { console.error('Publish by pushing a version tag, e.g. git tag 1.2.0 && git push origin 1.2.0'); process.exit(1) }\" && npm run lint && npm test && npm run build"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0"

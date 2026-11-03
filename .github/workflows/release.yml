@@ -1,0 +1,79 @@
+name: Release
+
+# Pushing a version tag (e.g. `1.2.0` or `1.3.0-beta.1`) publishes that version to npm.
+# The tag *is* the version: package.json is updated from it during the build.
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+-*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the GitHub release
+      id-token: write # npm Trusted Publishing (OIDC) + provenance
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # needed to check that the tag is on main
+
+      - name: Validate the tag
+        id: version
+        run: |
+          VERSION="$GITHUB_REF_NAME"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Tag '$VERSION' is not a valid semver version"
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::Tag '$VERSION' must point to a commit on main"
+            exit 1
+          fi
+          if [[ "$VERSION" == *-* ]]; then
+            # 1.3.0-beta.1 → dist-tag "beta", so `npm install` keeps getting the stable release
+            PRERELEASE="${VERSION#*-}"
+            echo "dist-tag=${PRERELEASE%%.*}" >> "$GITHUB_OUTPUT"
+            echo "prerelease=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "dist-tag=latest" >> "$GITHUB_OUTPUT"
+            echo "prerelease=false" >> "$GITHUB_OUTPUT"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v7
+        with:
+          # Node 24 ships npm 11, which supports Trusted Publishing (needs npm >= 11.5.1)
+          node-version-file: .nvmrc
+          cache: npm
+          registry-url: https://registry.npmjs.org
+
+      - run: npm ci
+
+      - name: Set the package version from the tag
+        run: npm version "${{ steps.version.outputs.version }}" --no-git-tag-version --allow-same-version
+
+      - run: npx playwright install --with-deps chromium firefox
+      - run: npm run test:e2e
+
+      # prepublishOnly runs lint, unit tests and the library build first.
+      # No token: npm authenticates this workflow via OIDC and adds provenance automatically.
+      - name: Publish to npm
+        run: npm publish --tag "${{ steps.version.outputs.dist-tag }}"
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            ${{ steps.version.outputs.prerelease == 'true' && '--prerelease' || '' }}

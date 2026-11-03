@@ -173,6 +173,18 @@ npm run build-example  # build the demo site into demo-dist/
 
 Run `npx playwright install` once before the first end-to-end run.
 
+### Releasing
+
+Releases are published to npm by GitHub Actions. The git tag is the version number, without a `v` prefix:
+
+```sh
+git tag 1.2.0
+git push origin 1.2.0
+```
+
+The [release workflow](./.github/workflows/release.yml) runs every test and publishes with [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers), so no npm token is stored anywhere and each version comes with a provenance attestation. It also creates a GitHub release with generated notes.
+Pre-release tags such as `1.3.0-beta.1` are published under their own dist-tag (`beta`), so `npm install react-sticky-video` keeps installing the latest stable version.
+
 ## License
 
 [MIT](./LICENSE)
