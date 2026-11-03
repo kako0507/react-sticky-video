@@ -13,9 +13,9 @@ When a playing video is scrolled out of view, it keeps playing in a small floati
 - Floating "picture-in-picture" style player while scrolling, with a configurable size and corner
 - Drag the floating player anywhere on the screen (mouse, pen or touch)
 - Supports **YouTube** videos and **video files** (including multiple `<source>` fallbacks)
-- A consistent, YouTube-like control bar for every source: play/pause, seeking, volume, full screen
+- A consistent, YouTube-like control bar for every source: play/pause, seeking, volume, captions, full page, full screen
 - **WebVTT captions** with a built-in caption picker
-- Works on mobile, with a full-page fallback where the Fullscreen API isn't available
+- **Full page** (fill the browser window) and **full screen** modes, available from both the inline and the floating player. Press <kbd>Esc</kbd> to leave either one; the full screen button is hidden where the Fullscreen API isn't available, e.g. on iPhone
 
 ## Requirements
 

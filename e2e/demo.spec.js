@@ -145,6 +145,83 @@ test.describe('file source', () => {
   });
 });
 
+test.describe('full page and full screen', () => {
+  // the visible area: the window in full page mode, the whole screen in full screen mode
+  const viewportBox = (page) => page.evaluate(() => ({
+    x: 0,
+    y: 0,
+    width: window.innerWidth,
+    height: window.innerHeight,
+  }));
+
+  const expectToFillViewport = async (page) => {
+    const box = await floatingPlayer(page).boundingBox();
+    const viewport = await viewportBox(page);
+    expect(box.x).toBeCloseTo(viewport.x, 0);
+    expect(box.y).toBeCloseTo(viewport.y, 0);
+    expect(box.width).toBeCloseTo(viewport.width, 0);
+    expect(box.height).toBeCloseTo(viewport.height, 0);
+  };
+
+  // the control bar only shows up after the video has started and while hovering
+  const clickControl = async (page, name) => {
+    await floatingPlayer(page).hover();
+    await floatingPlayer(page).getByRole('button', { name, exact: true }).click();
+  };
+
+  const startPlaying = async (page) => {
+    await page.goto('./#service=file');
+    await waitForVideoReady(page);
+    await player(page).click();
+    await expect.poll(() => video(page).evaluate((element) => element.paused)).toBe(false);
+  };
+
+  test('full page fills the browser window and Escape exits it', async ({ page }) => {
+    await startPlaying(page);
+    await clickControl(page, 'Full page');
+    await expectToFillViewport(page);
+    await expect(floatingPlayer(page).getByRole('button', { name: 'Exit full page' })).toBeAttached();
+
+    await page.keyboard.press('Escape');
+    await expect(floatingPlayer(page).getByRole('button', { name: 'Full page', exact: true })).toBeAttached();
+    expect((await floatingPlayer(page).boundingBox()).width).toBeLessThan(page.viewportSize().width);
+  });
+
+  test('full screen uses the Fullscreen API', async ({ page }) => {
+    await startPlaying(page);
+    await clickControl(page, 'Full screen');
+    await expect.poll(() => page.evaluate(() => document.fullscreenElement?.getAttribute('aria-label')))
+      .toBe('Video player');
+    await expectToFillViewport(page);
+
+    await clickControl(page, 'Exit full screen');
+    await expect.poll(() => page.evaluate(() => document.fullscreenElement)).toBeNull();
+  });
+
+  test('both modes work from the floating player', async ({ page }) => {
+    await startPlaying(page);
+    await scrollTo(page, 2500);
+    await expect.poll(async () => (await getPosition(floatingPlayer(page))).position).toBe('fixed');
+    await floatingPlayer(page).evaluate((element) => Promise.all(
+      element.getAnimations().map((animation) => animation.finished),
+    ));
+
+    await clickControl(page, 'Full page');
+    await expectToFillViewport(page);
+    await clickControl(page, 'Exit full page');
+    // back to the floating player in its corner
+    await expect.poll(async () => (await floatingPlayer(page).boundingBox()).width).toBe(320);
+
+    await clickControl(page, 'Full screen');
+    await expect.poll(() => page.evaluate(() => document.fullscreenElement?.getAttribute('aria-label')))
+      .toBe('Video player');
+    await expectToFillViewport(page);
+    await clickControl(page, 'Exit full screen');
+    await expect.poll(() => page.evaluate(() => document.fullscreenElement)).toBeNull();
+    await expect.poll(async () => (await floatingPlayer(page).boundingBox()).width).toBe(320);
+  });
+});
+
 test.describe('YouTube', () => {
   test('embeds the YouTube player and fills the player', async ({ page }) => {
     await page.goto('./#service=youtube');

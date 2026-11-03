@@ -91,6 +91,15 @@
     }
   }
 
+  // the Fullscreen API's element (browsers already size it, this covers older ones)
+  >.player.full-screen {
+    width: 100% !important;
+    height: 100% !important;
+    translate: none;
+    animation: none;
+    background-color: #000;
+  }
+
   >.player.full-page {
     position: fixed;
     top: 0;

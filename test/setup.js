@@ -23,6 +23,9 @@ Object.defineProperties(window.HTMLMediaElement.prototype, {
   },
 });
 
+// jsdom doesn't implement scrolling either
+window.scrollTo = vi.fn();
+
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();

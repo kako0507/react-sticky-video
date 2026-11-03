@@ -199,6 +199,140 @@ describe('<StickyVideo /> dragging the floating player', () => {
   });
 });
 
+describe('<StickyVideo /> full page and full screen', () => {
+  let fullscreenElement;
+
+  beforeEach(() => {
+    fullscreenElement = null;
+    Object.defineProperty(document, 'fullscreenEnabled', { configurable: true, value: true });
+    Object.defineProperty(document, 'fullscreenElement', {
+      configurable: true,
+      get: () => fullscreenElement,
+    });
+    document.exitFullscreen = vi.fn(async () => {
+      fullscreenElement = null;
+      document.dispatchEvent(new Event('fullscreenchange'));
+    });
+    Element.prototype.requestFullscreen = vi.fn(async function requestFullscreen() {
+      fullscreenElement = this;
+      document.dispatchEvent(new Event('fullscreenchange'));
+    });
+  });
+
+  afterEach(() => {
+    delete document.fullscreenEnabled;
+    delete document.fullscreenElement;
+    delete document.exitFullscreen;
+    delete Element.prototype.requestFullscreen;
+    vi.restoreAllMocks();
+  });
+
+  const button = (name) => screen.getByRole('button', { name, hidden: true });
+
+  const renderReady = (props) => {
+    const utils = render(<StickyVideo url="trailer.mp4" {...props} />);
+    const video = utils.container.querySelector('video');
+    fireEvent(video, new Event('canplay'));
+    return { ...utils, video };
+  };
+
+  const makeSticky = (video) => {
+    fireEvent(video, new Event('play'));
+    mockOutOfViewport();
+    fireEvent.scroll(document);
+  };
+
+  it('toggles full page mode and locks page scrolling', async () => {
+    const { container } = renderReady();
+    fireEvent.click(button('Full page'));
+    expect(getPlayer(container)).toHaveClass('full-page');
+    expect(document.documentElement.style.overflow).toBe('hidden');
+
+    fireEvent.click(button('Exit full page'));
+    expect(getPlayer(container)).not.toHaveClass('full-page');
+    expect(document.documentElement.style.overflow).toBe('');
+  });
+
+  it('keeps the scroll position when leaving full page mode', () => {
+    const { container } = renderReady();
+    Object.defineProperty(window, 'scrollY', { configurable: true, value: 2500 });
+    fireEvent.click(button('Full page'));
+    fireEvent.click(button('Exit full page'));
+    expect(window.scrollTo).toHaveBeenLastCalledWith(0, 2500);
+    expect(getPlayer(container)).not.toHaveClass('full-page');
+    delete window.scrollY;
+  });
+
+  it('exits full page mode with Escape', () => {
+    const { container } = renderReady();
+    fireEvent.click(button('Full page'));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(getPlayer(container)).not.toHaveClass('full-page');
+  });
+
+  it('toggles full screen with the Fullscreen API', async () => {
+    const { container } = renderReady();
+    fireEvent.click(button('Full screen'));
+    expect(Element.prototype.requestFullscreen).toHaveBeenCalledOnce();
+    expect(Element.prototype.requestFullscreen.mock.contexts[0]).toBe(getPlayer(container));
+    await waitFor(() => {
+      expect(getPlayer(container)).toHaveClass('full-screen');
+    });
+
+    fireEvent.click(button('Exit full screen'));
+    expect(document.exitFullscreen).toHaveBeenCalledOnce();
+    await waitFor(() => {
+      expect(getPlayer(container)).not.toHaveClass('full-screen');
+    });
+  });
+
+  it('switches from full page to full screen', async () => {
+    const { container } = renderReady();
+    fireEvent.click(button('Full page'));
+    fireEvent.click(button('Full screen'));
+    await waitFor(() => {
+      expect(getPlayer(container)).toHaveClass('full-screen');
+    });
+    expect(getPlayer(container)).not.toHaveClass('full-page');
+  });
+
+  it('ignores other elements going full screen', async () => {
+    const { container } = renderReady();
+    fullscreenElement = document.body;
+    fireEvent(document, new Event('fullscreenchange'));
+    expect(button('Full screen')).toBeInTheDocument();
+    expect(getPlayer(container)).not.toHaveClass('full-screen');
+  });
+
+  it('works from the floating player too', async () => {
+    const { container, video } = renderReady();
+    makeSticky(video);
+    expect(getPlayer(container)).toHaveClass('sticky');
+
+    fireEvent.click(button('Full page'));
+    // the expanded player is no longer floating (or draggable)
+    expect(getPlayer(container)).toHaveClass('full-page');
+    expect(getPlayer(container)).not.toHaveClass('sticky');
+    expect(getPlayer(container).style.translate).toBe('');
+
+    fireEvent.click(button('Exit full page'));
+    expect(getPlayer(container)).toHaveClass('sticky');
+
+    fireEvent.click(button('Full screen'));
+    await waitFor(() => {
+      expect(getPlayer(container)).toHaveClass('full-screen');
+    });
+    expect(getPlayer(container)).not.toHaveClass('sticky');
+  });
+
+  it('hides the full screen button without Fullscreen API support', () => {
+    Object.defineProperty(document, 'fullscreenEnabled', { configurable: true, value: false });
+    renderReady();
+    expect(screen.queryByRole('button', { name: 'Full screen', hidden: true })).not.toBeInTheDocument();
+    expect(button('Full page')).toBeInTheDocument();
+  });
+});
+
 describe('<StickyVideo /> volume slider', () => {
   const mockPointer = (coarse) => {
     vi.stubGlobal('matchMedia', vi.fn((query) => ({

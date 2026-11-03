@@ -5,6 +5,8 @@ import {
   faPause,
   faExpand,
   faCompress,
+  faWindowMaximize,
+  faWindowRestore,
   faClosedCaptioning,
 } from '@fortawesome/free-solid-svg-icons';
 import t from '../../constants/actionTypes';
@@ -23,10 +25,12 @@ const Controls = ({
   isReady = false,
   show = false,
   isFullScreen = false,
+  isFullPage = false,
+  canFullScreen = false,
   isMobile = false,
   hasCaptions = false,
-  onClickFullscreen,
-  onCancelFullscreen,
+  onToggleFullScreen,
+  onToggleFullPage,
   cancelHideControls,
 }) => {
   const {
@@ -104,17 +108,17 @@ const Controls = ({
             </div>
           )}
           <IconButton
-            icon={faExpand}
-            label="Full screen"
-            hide={isFullScreen}
-            onClick={onClickFullscreen}
+            icon={isFullPage ? faWindowRestore : faWindowMaximize}
+            label={isFullPage ? 'Exit full page' : 'Full page'}
+            onClick={onToggleFullPage}
           />
-          <IconButton
-            icon={faCompress}
-            label="Exit full screen"
-            hide={!isFullScreen}
-            onClick={onCancelFullscreen}
-          />
+          {canFullScreen && (
+            <IconButton
+              icon={isFullScreen ? faCompress : faExpand}
+              label={isFullScreen ? 'Exit full screen' : 'Full screen'}
+              onClick={onToggleFullScreen}
+            />
+          )}
         </div>
       </div>
     </>
