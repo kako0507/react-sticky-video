@@ -1,4 +1,5 @@
 import {
+  useSyncExternalStore,
   useReducer,
   useRef,
   useCallback,
@@ -11,7 +12,8 @@ import t from './constants/actionTypes';
 import {
   parseYouTubeVideoId,
   isElementInViewport,
-  checkFullScreen,
+  getFullscreenElement,
+  isFullscreenSupported,
   openFullscreen,
   closeFullscreen,
 } from './utils';
@@ -52,6 +54,9 @@ const HIDE_CONTROLS_DELAY = 3000;
 // touch screens can't hover, so the volume slider is hidden there
 const TOUCH_DEVICE_QUERY = '(pointer: coarse)';
 const COMPACT_PLAYER_WIDTH = 400;
+
+const subscribeToNothing = () => () => {};
+const getServerSnapshot = () => false;
 
 const getVideoSource = (url) => {
   const videoId = parseYouTubeVideoId(url);
@@ -123,7 +128,8 @@ const StickyVideo = ({
   const playerSize = isSticky
     ? { width: stickyWidth, height: stickyHeight }
     : { width, height };
-  const isFloating = isSticky && !isFullPage;
+  const isExpanded = isFullPage || isFullScreen;
+  const isFloating = isSticky && !isExpanded;
   const isDraggable = isFloating && draggable;
   const { offset: dragOffset, isDragging, dragHandlers } = useDraggable({
     enabled: isDraggable,
@@ -131,7 +137,13 @@ const StickyVideo = ({
   });
 
   const isTouchDevice = useMediaQuery(TOUCH_DEVICE_QUERY);
-  const isMobile = playerSize.width < COMPACT_PLAYER_WIDTH || isTouchDevice;
+  const isMobile = (!isExpanded && playerSize.width < COMPACT_PLAYER_WIDTH) || isTouchDevice;
+  // false while server rendering, so the markup matches on hydration
+  const canFullScreen = useSyncExternalStore(
+    subscribeToNothing,
+    isFullscreenSupported,
+    getServerSnapshot,
+  );
 
   const { provider, videoId } = getVideoSource(url);
 
@@ -176,22 +188,22 @@ const StickyVideo = ({
     }
     event.stopPropagation();
   }, [handleShowControls, isPlaying]);
-  const handleClickFullscreen = useCallback(() => {
-    const support = openFullscreen(refPlayerContainer.current);
-    if (!support) {
-      dispatch({
-        type: t.SET_FULLPAGE,
-        data: true,
-      });
+  // full screen: the Fullscreen API fills the whole screen
+  const handleToggleFullScreen = useCallback(() => {
+    if (isFullScreen) {
+      closeFullscreen();
+      return;
     }
-  }, []);
-  const handleCancelFullscreen = useCallback(() => {
-    closeFullscreen();
-    dispatch({
-      type: t.SET_FULLPAGE,
-      data: false,
-    });
-  }, []);
+    dispatch({ type: t.SET_FULLPAGE, data: false });
+    openFullscreen(refPlayerContainer.current);
+  }, [isFullScreen]);
+  // full page: the player fills the browser window
+  const handleToggleFullPage = useCallback(() => {
+    if (!isFullPage) {
+      closeFullscreen();
+    }
+    dispatch({ type: t.SET_FULLPAGE, data: !isFullPage });
+  }, [isFullPage]);
 
   // float the player while it is playing and scrolled out of the viewport
   useEffect(() => {
@@ -243,7 +255,8 @@ const StickyVideo = ({
     const handleFullScreenChange = () => {
       dispatch({
         type: t.SET_FULLSCREEN,
-        data: checkFullScreen(),
+        // only this player, not another element on the page
+        data: getFullscreenElement() === refPlayerContainer.current,
       });
     };
     document.addEventListener('fullscreenchange', handleFullScreenChange);
@@ -254,20 +267,27 @@ const StickyVideo = ({
     };
   }, []);
 
-  // "full page" fallback for browsers without the Fullscreen API (e.g. iOS Safari)
+  // full page: stop the page behind the player from scrolling, and exit with Escape
   useEffect(() => {
     if (!isFullPage) {
       return undefined;
     }
-    const { style } = document.body;
-    const { width: bodyWidth, height: bodyHeight, overflow } = style;
-    style.width = '100vw';
-    style.height = '100vh';
+    // Only hide the overflow: changing the page size would reset the scroll position,
+    // and the player would no longer be sticky after leaving full page mode.
+    const { style } = document.documentElement;
+    const { overflow } = style;
+    const { scrollX, scrollY } = window;
     style.overflow = 'hidden';
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        dispatch({ type: t.SET_FULLPAGE, data: false });
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
     return () => {
-      style.width = bodyWidth;
-      style.height = bodyHeight;
       style.overflow = overflow;
+      window.scrollTo(scrollX, scrollY);
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, [isFullPage]);
 
@@ -322,6 +342,7 @@ const StickyVideo = ({
             styles.player,
             {
               [styles.fullPage]: isFullPage,
+              [styles.fullScreen]: isFullScreen,
               [styles.sticky]: isFloating,
               [styles.stTopRight]: position === 'top-right',
               [styles.stTopLeft]: position === 'top-left',
@@ -362,11 +383,13 @@ const StickyVideo = ({
               ccButtonRef={refCCButton}
               isReady={isReady}
               show={isShowControls}
-              isFullScreen={isFullScreen || isFullPage}
+              isFullScreen={isFullScreen}
+              isFullPage={isFullPage}
+              canFullScreen={canFullScreen}
               isMobile={isMobile}
               hasCaptions={hasCaptions}
-              onClickFullscreen={handleClickFullscreen}
-              onCancelFullscreen={handleCancelFullscreen}
+              onToggleFullScreen={handleToggleFullScreen}
+              onToggleFullPage={handleToggleFullPage}
               cancelHideControls={cancelHideControls}
             />
           )}

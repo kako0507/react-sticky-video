@@ -54,32 +54,34 @@ export const getFractionFromMouseEvent = (element, event) => {
   return Math.min(Math.max(relativeX / rect.width, 0), 1);
 };
 
-export const checkFullScreen = () => Boolean(
-  document.fullscreenElement || document.webkitFullscreenElement,
-);
+/** The element currently shown with the Fullscreen API, if any. */
+export const getFullscreenElement = () => (typeof document === 'undefined'
+  ? null
+  : document.fullscreenElement ?? document.webkitFullscreenElement ?? null);
+
+/** Whether the Fullscreen API can be used (it isn't on iPhone Safari, for example). */
+export const isFullscreenSupported = () => typeof document !== 'undefined'
+  && Boolean(document.fullscreenEnabled ?? document.webkitFullscreenEnabled);
 
 export const openFullscreen = (element) => {
-  if (element.requestFullscreen) {
-    element.requestFullscreen();
-  } else if (element.webkitRequestFullscreen) {
-    element.webkitRequestFullscreen();
-  } else {
+  const request = element.requestFullscreen ?? element.webkitRequestFullscreen;
+  if (!request) {
     return false;
   }
+  // requestFullscreen() returns a promise in modern browsers; a rejection only means "not now"
+  Promise.resolve(request.call(element)).catch(() => {});
   return true;
 };
 
 export const closeFullscreen = () => {
-  if (!checkFullScreen()) {
+  if (!getFullscreenElement()) {
     return false;
   }
-  if (document.exitFullscreen) {
-    document.exitFullscreen();
-  } else if (document.webkitExitFullscreen) {
-    document.webkitExitFullscreen();
-  } else {
+  const exit = document.exitFullscreen ?? document.webkitExitFullscreen;
+  if (!exit) {
     return false;
   }
+  Promise.resolve(exit.call(document)).catch(() => {});
   return true;
 };
 
