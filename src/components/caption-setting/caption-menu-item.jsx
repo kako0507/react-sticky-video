@@ -1,44 +1,42 @@
-import React, { useContext, useCallback } from 'react';
-import PropTypes from 'prop-types';
+import { use, useCallback } from 'react';
 import t from '../../constants/actionTypes';
 import Store from '../../store';
-import styles from './caption-setting.scss';
+import styles from './caption-setting.module.scss';
 
-const CaptionMenuItem = ({
-  label,
-}) => {
+const CaptionMenuItem = ({ label }) => {
   const {
     state: { selectedCaption },
     dispatch,
-  } = useContext(Store);
+  } = use(Store);
 
-  const handleClick = useCallback(() => {
+  const handleSelect = useCallback(() => {
     dispatch({
       type: t.SELECT_CAPTION,
       data: label,
     });
   }, [dispatch, label]);
 
+  const handleKeyDown = useCallback((event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleSelect();
+    }
+  }, [handleSelect]);
+
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events
     <div
-      tabIndex="-1"
+      tabIndex={-1}
       role="menuitemradio"
       className={styles.menuItem}
       aria-checked={selectedCaption === label}
-      onClick={handleClick}
+      onClick={handleSelect}
+      onKeyDown={handleKeyDown}
     >
-      <div
-        className={styles.label}
-      >
+      <div className={styles.label}>
         {label}
       </div>
     </div>
   );
-};
-
-CaptionMenuItem.propTypes = {
-  label: PropTypes.string.isRequired,
 };
 
 export default CaptionMenuItem;

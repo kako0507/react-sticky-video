@@ -1,31 +1,38 @@
-/* global YT */
-import load from 'load-script';
-import React, {
-  useContext,
-  useState,
-  useRef,
-  useEffect,
-} from 'react';
-import PropTypes from 'prop-types';
-import useDeepCompareEffect from 'use-deep-compare-effect';
+import { use, useEffect, useRef } from 'react';
 import t from '../constants/actionTypes';
 import Store from '../store';
 import usePlayerEvents from '../hooks/use-player-events';
+import { loadYouTubeIframeApi } from '../utils';
 
-let libLoaded;
+// The IFrame API expects numeric flags, so convert booleans to 1 / 0.
+const normalizePlayerVars = (playerVars) => Object.fromEntries(
+  Object.entries(playerVars).map(([key, value]) => [
+    key,
+    typeof value === 'boolean' ? Number(value) : value,
+  ]),
+);
 
-const genPlayer = ({
-  elemPlayer,
+const createPlayer = ({
+  YT,
+  target,
   videoId,
   playerVars,
   controls,
   events,
-  setPlayer,
+  onPlayerReady,
 }) => {
-  const player = new YT.Player(elemPlayer, {
+  let timeupdateInterval;
+  let prevPlayerState;
+
+  const stopTimeUpdate = () => {
+    clearInterval(timeupdateInterval);
+    timeupdateInterval = undefined;
+  };
+
+  const player = new YT.Player(target, {
     videoId,
     playerVars: {
-      ...playerVars,
+      ...normalizePlayerVars(playerVars),
       controls: controls ? 1 : 0,
       playsinline: 1,
       fs: 0,
@@ -33,10 +40,16 @@ const genPlayer = ({
       cc_load_policy: 3,
     },
   });
-  let timeupdateInterval;
-  let prevPlayerState;
+
+  const onTimeUpdate = () => {
+    events.onTimeUpdate(
+      player.getCurrentTime(),
+      player.getVideoLoadedFraction?.(),
+    );
+  };
 
   const onReady = () => {
+    onPlayerReady(player);
     events.onReady(
       player.getDuration(),
       player.isMuted(),
@@ -52,8 +65,8 @@ const genPlayer = ({
           player.seekTo(second, !isSeeking);
           if (!isSeeking && isPlaying) {
             player.playVideo();
-          } else if (timeupdateInterval) {
-            clearInterval(timeupdateInterval);
+          } else {
+            stopTimeUpdate();
           }
         },
         setMuted: (isMuted) => {
@@ -66,7 +79,7 @@ const genPlayer = ({
         setVolume: (volume) => {
           if (volume !== undefined) {
             player.setVolume(Math.round(volume * 100));
-            if (volume > 0 && player.muted) {
+            if (volume > 0 && player.isMuted()) {
               player.unMute();
             }
           }
@@ -74,29 +87,18 @@ const genPlayer = ({
       },
     );
   };
-  const onTimeUpdate = () => {
-    events.onTimeUpdate(
-      player.getCurrentTime(),
-      player.getVideoLoadedFraction
-        ? player.getVideoLoadedFraction()
-        : undefined,
-    );
-  };
+
   const onStateChange = ({ data: playerState }) => {
+    stopTimeUpdate();
     if (playerState === YT.PlayerState.PLAYING) {
       timeupdateInterval = setInterval(onTimeUpdate, 200);
-    } else {
-      clearInterval(timeupdateInterval);
     }
     switch (playerState) {
       case YT.PlayerState.PLAYING:
         events.onPlay();
         break;
       case YT.PlayerState.BUFFERING:
-        if ([
-          -1,
-          YT.PlayerState.PLAYING,
-        ].indexOf(prevPlayerState) > -1) {
+        if ([-1, YT.PlayerState.PLAYING].includes(prevPlayerState)) {
           events.onPlay();
         }
         break;
@@ -114,14 +116,11 @@ const genPlayer = ({
 
   player.addEventListener('onReady', onReady);
   player.addEventListener('onStateChange', onStateChange);
-  setPlayer({
-    element: player,
-    removeEventListeners: () => {
-      player.removeEventListener('onReady', onReady);
-      player.removeEventListener('onStateChange', onStateChange);
-      clearInterval(timeupdateInterval);
-    },
-  });
+
+  return () => {
+    stopTimeUpdate();
+    player.destroy();
+  };
 };
 
 const Youtube = ({
@@ -129,66 +128,72 @@ const Youtube = ({
   playerVars,
   controls,
 }) => {
-  const { dispatch } = useContext(Store);
-  const [player, setPlayer] = useState({});
-  const refPlayer = useRef(null);
+  const { dispatch } = use(Store);
   const events = usePlayerEvents(dispatch);
+  const refContainer = useRef(null);
+  const refPlayer = useRef(null);
+  const refVideoId = useRef(videoId);
+  const refLoadedVideoId = useRef(videoId);
+  const autoplay = Boolean(playerVars.autoplay);
+  // Re-create the player only when the player parameters actually change.
+  const playerVarsKey = JSON.stringify(playerVars);
 
-  // create/destory the youtube player
-  useDeepCompareEffect(() => {
-    if (!player.element) {
-      const params = {
-        elemPlayer: refPlayer.current,
-        videoId,
-        playerVars,
+  // create / destroy the YouTube player
+  useEffect(() => {
+    const container = refContainer.current;
+    let cancelled = false;
+    let destroyPlayer;
+
+    loadYouTubeIframeApi().then((YT) => {
+      if (cancelled) {
+        return;
+      }
+      // YT.Player replaces its target with an iframe, so give it a node React doesn't own.
+      const target = document.createElement('div');
+      container.appendChild(target);
+      refLoadedVideoId.current = refVideoId.current;
+      destroyPlayer = createPlayer({
+        YT,
+        target,
+        videoId: refVideoId.current,
+        playerVars: JSON.parse(playerVarsKey),
         controls,
         events,
-        setPlayer,
-      };
-      if (libLoaded) {
-        genPlayer(params);
-      } else {
-        load('https://www.youtube.com/iframe_api', () => {
-          window.onYouTubeIframeAPIReady = () => {
-            genPlayer(params);
-            libLoaded = true;
-          };
-        });
-      }
-    }
+        onPlayerReady: (player) => {
+          refPlayer.current = player;
+        },
+      });
+    }).catch((error) => {
+      console.error(error);
+    });
+
     return () => {
-      if (player.element) {
-        player.removeEventListeners();
-        player.element.destroy();
-        dispatch({
-          type: t.DESTROY_PLAYER,
-        });
+      cancelled = true;
+      refPlayer.current = null;
+      if (destroyPlayer) {
+        destroyPlayer();
+        dispatch({ type: t.DESTROY_PLAYER });
       }
+      container.replaceChildren();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [player, playerVars]);
+  }, [playerVarsKey, controls, events, dispatch]);
 
   // play another video
   useEffect(() => {
-    if (player.element) {
-      if (playerVars.autoplay) {
-        player.element.loadVideoById(videoId);
-      } else {
-        player.element.cueVideoById(videoId);
-      }
+    refVideoId.current = videoId;
+    const player = refPlayer.current;
+    if (!player || refLoadedVideoId.current === videoId) {
+      return;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [videoId]);
+    refLoadedVideoId.current = videoId;
+    if (autoplay) {
+      player.loadVideoById(videoId);
+    } else {
+      player.cueVideoById(videoId);
+    }
+  }, [videoId, autoplay]);
 
-  return <div ref={refPlayer} />;
-};
-
-Youtube.propTypes = {
-  videoId: PropTypes.string.isRequired,
-  playerVars: PropTypes.shape({
-    autoplay: PropTypes.bool,
-  }).isRequired,
-  controls: PropTypes.bool.isRequired,
+  return <div ref={refContainer} />;
 };
 
 export default Youtube;

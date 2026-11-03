@@ -1,15 +1,13 @@
-import React from 'react';
-import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
-  faPlayCircle,
+  faCirclePlay,
   faCircleNotch,
 } from '@fortawesome/free-solid-svg-icons';
-import appStyles from '../../app.scss';
-import styles from './play-circle.scss';
+import appStyles from '../../app.module.scss';
+import styles from './play-circle.module.scss';
 
-const PlayCircle = ({ isReady }) => (
+const PlayCircle = ({ isReady = false }) => (
   <>
     <div
       className={classNames(
@@ -17,23 +15,13 @@ const PlayCircle = ({ isReady }) => (
         { [appStyles.hide]: !isReady },
       )}
     />
-    <div
-      className={styles.container}
-    >
+    <div className={styles.container}>
       <FontAwesomeIcon
-        icon={isReady ? faPlayCircle : faCircleNotch}
+        icon={isReady ? faCirclePlay : faCircleNotch}
         spin={!isReady}
       />
     </div>
   </>
 );
-
-PlayCircle.propTypes = {
-  isReady: PropTypes.bool,
-};
-
-PlayCircle.defaultProps = {
-  isReady: false,
-};
 
 export default PlayCircle;

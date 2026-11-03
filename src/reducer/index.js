@@ -13,37 +13,11 @@ export default (state = {}, { type, data }) => {
         ...state,
         isFullScreen: data,
       };
-    case t.SET_FULLPAGE: {
-      let {
-        bodyWidth,
-        bodyHeight,
-        bodyOverflow,
-      } = state.fullPage;
-      if (data) {
-        bodyWidth = document.body.style.width;
-        bodyHeight = document.body.style.height;
-        bodyOverflow = document.body.style.overflow;
-        document.body.style.width = '100vw';
-        document.body.style.height = '100vh';
-        document.body.style.overflow = 'hidden';
-      } else {
-        document.body.style.width = bodyWidth;
-        document.body.style.height = bodyHeight;
-        document.body.style.overflow = bodyOverflow;
-        bodyWidth = undefined;
-        bodyHeight = undefined;
-        bodyOverflow = undefined;
-      }
+    case t.SET_FULLPAGE:
       return {
         ...state,
-        fullPage: {
-          open: data,
-          bodyWidth,
-          bodyHeight,
-          bodyOverflow,
-        },
+        isFullPage: data,
       };
-    }
     case t.FOCUS_PLAYER:
       return {
         ...state,

@@ -1,9 +1,4 @@
-import React, {
-  forwardRef,
-  useContext,
-  useCallback,
-} from 'react';
-import PropTypes from 'prop-types';
+import { use, useCallback } from 'react';
 import classNames from 'classnames';
 import {
   faPlay,
@@ -19,23 +14,21 @@ import PlayCircle from '../play-circle';
 import ProgressBar from '../progress-bar';
 import IconButton from '../icon-button';
 import VolumeSlider from '../volume-slider';
-import appStyles from '../../app.scss';
-import styles from './controls.scss';
 import Timer from '../timer';
+import appStyles from '../../app.module.scss';
+import styles from './controls.module.scss';
 
-const Controls = forwardRef((
-  {
-    isReady,
-    show,
-    isFullScreen,
-    isMobile,
-    captions,
-    onClickFullscreen,
-    onCancelFullscreen,
-    cancelHideControls,
-  },
-  refCCButton,
-) => {
+const Controls = ({
+  ref,
+  isReady = false,
+  show = false,
+  isFullScreen = false,
+  isMobile = false,
+  hasCaptions = false,
+  onClickFullscreen,
+  onCancelFullscreen,
+  cancelHideControls,
+}) => {
   const {
     state: {
       playerStatus: {
@@ -46,13 +39,9 @@ const Controls = forwardRef((
       },
     },
     dispatch,
-  } = useContext(Store);
+  } = use(Store);
 
-  const {
-    play,
-    pause,
-    seekTo,
-  } = usePlayerControls(dispatch);
+  const { play, pause, seekTo } = usePlayerControls(dispatch);
 
   const containerStyle = {
     [appStyles.hide]: !hasPlayed || !show,
@@ -89,11 +78,13 @@ const Controls = forwardRef((
         <div className={styles.buttons}>
           <IconButton
             icon={faPlay}
+            label="Play"
             hide={isPlaying}
             onClick={play}
           />
           <IconButton
             icon={faPause}
+            label="Pause"
             hide={!isPlaying}
             onClick={pause}
           />
@@ -103,21 +94,24 @@ const Controls = forwardRef((
             duration={duration}
           />
           <div className={styles.flex1} />
-          {captions.length > 0 && (
-            <div ref={refCCButton}>
+          {hasCaptions && (
+            <div ref={ref}>
               <IconButton
                 icon={faClosedCaptioning}
+                label="Captions"
                 onClick={handleShowCC}
               />
             </div>
           )}
           <IconButton
             icon={faExpand}
+            label="Full screen"
             hide={isFullScreen}
             onClick={onClickFullscreen}
           />
           <IconButton
             icon={faCompress}
+            label="Exit full screen"
             hide={!isFullScreen}
             onClick={onCancelFullscreen}
           />
@@ -125,25 +119,6 @@ const Controls = forwardRef((
       </div>
     </>
   );
-});
-
-Controls.propTypes = {
-  isReady: PropTypes.bool,
-  show: PropTypes.bool,
-  isFullScreen: PropTypes.bool,
-  isMobile: PropTypes.bool,
-  // eslint-disable-next-line react/forbid-prop-types
-  captions: PropTypes.array.isRequired,
-  onClickFullscreen: PropTypes.func.isRequired,
-  onCancelFullscreen: PropTypes.func.isRequired,
-  cancelHideControls: PropTypes.func.isRequired,
-};
-
-Controls.defaultProps = {
-  isReady: false,
-  show: false,
-  isFullScreen: false,
-  isMobile: false,
 };
 
 export default Controls;

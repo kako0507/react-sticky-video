@@ -1,10 +1,9 @@
-import React, {
-  useContext,
+import {
+  use,
   useRef,
   useCallback,
   useEffect,
 } from 'react';
-import PropTypes from 'prop-types';
 import classNames from 'classnames';
 import t from '../../constants/actionTypes';
 import {
@@ -12,8 +11,8 @@ import {
   getTimeStringFromSeconds,
 } from '../../utils';
 import Store from '../../store';
-import appStyles from '../../app.scss';
-import styles from './progress-bar.scss';
+import appStyles from '../../app.module.scss';
+import styles from './progress-bar.module.scss';
 
 const tooltipContainerWidth = 200;
 
@@ -31,7 +30,7 @@ const ProgressBar = ({
       },
     },
     dispatch,
-  } = useContext(Store);
+  } = use(Store);
   const refProgressContainer = useRef(null);
   let currentTimePercentage;
   let hoveredTimePercentage;
@@ -90,10 +89,11 @@ const ProgressBar = ({
   }, [seekTo, isSeeking, dispatch]);
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- keyboard seeking is not supported yet
     <div
       role="slider"
-      tabIndex="-1"
+      tabIndex={-1}
+      aria-label="Seek"
       ref={refProgressContainer}
       className={styles.container}
       onClick={handleProgressClick}
@@ -161,14 +161,6 @@ const ProgressBar = ({
       </div>
     </div>
   );
-};
-
-ProgressBar.propTypes = {
-  seekTo: PropTypes.func,
-};
-
-ProgressBar.defaultProps = {
-  seekTo: undefined,
 };
 
 export default ProgressBar;
