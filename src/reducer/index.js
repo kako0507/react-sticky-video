@@ -1,5 +1,12 @@
-import update from 'immutability-helper';
 import t from '../constants/actionTypes';
+
+const mergePlayerStatus = (state, patch) => ({
+  ...state,
+  playerStatus: {
+    ...state.playerStatus,
+    ...patch,
+  },
+});
 
 export default (state = {}, { type, data }) => {
   switch (type) {
@@ -62,23 +69,13 @@ export default (state = {}, { type, data }) => {
           pause();
         }
       }
-      return update(state, {
-        playerStatus: {
-          $merge: {
+      return mergePlayerStatus(state, {
             isPlaying,
             hasPlayed,
-          },
-        },
-      });
+          });
     }
     case t.SET_DURATION: {
-      return update(state, {
-        playerStatus: {
-          duration: {
-            $set: data,
-          },
-        },
-      });
+      return mergePlayerStatus(state, { duration: data });
     }
     case t.SET_CURRENT_TIME: {
       const { isSeeking, loaded } = state.playerStatus;
@@ -86,34 +83,20 @@ export default (state = {}, { type, data }) => {
       if (currentTime === undefined || isSeeking) {
         return state;
       }
-      return update(state, {
-        playerStatus: {
-          $merge: {
+      return mergePlayerStatus(state, {
             currentTime,
             loaded: data.loaded || loaded,
-          },
-        },
-      });
+          });
     }
     case t.SET_LOADED_PERCENTAGE: {
-      return update(state, {
-        playerStatus: {
-          loaded: {
-            $set: data,
-          },
-        },
-      });
+      return mergePlayerStatus(state, { loaded: data });
     }
     case t.SET_HOVERED_TIME: {
       const { playerStatus } = state;
       const hoveredTime = data === undefined
         ? undefined
         : playerStatus.duration * data;
-      return update(state, {
-        playerStatus: {
-          $merge: { hoveredTime },
-        },
-      });
+      return mergePlayerStatus(state, { hoveredTime });
     }
     case t.SEEK_TO_FRACTION: {
       const {
@@ -129,15 +112,11 @@ export default (state = {}, { type, data }) => {
         : duration * fraction;
       const isSeeking = !!fraction;
       seekTo(time, isSeeking, isPlaying);
-      return update(state, {
-        playerStatus: {
-          $merge: {
+      return mergePlayerStatus(state, {
             isSeeking,
             currentTime: time,
             hoveredTime: isSeeking ? time : undefined,
-          },
-        },
-      });
+          });
     }
     case t.SET_MUTE: {
       const { setMuted } = state.playerControls;
@@ -145,13 +124,7 @@ export default (state = {}, { type, data }) => {
         return state;
       }
       setMuted(data);
-      return update(state, {
-        playerStatus: {
-          isMuted: {
-            $set: data,
-          },
-        },
-      });
+      return mergePlayerStatus(state, { isMuted: data });
     }
     case t.SET_VOLUME: {
       const { setVolume } = state.playerControls;
@@ -167,38 +140,24 @@ export default (state = {}, { type, data }) => {
         isChangingVolume = true;
         setVolume(volume);
       }
-      return update(state, {
-        playerStatus: {
-          $merge: {
+      return mergePlayerStatus(state, {
             volume,
             isMuted: volume === 0,
             isChangingVolume,
-          },
-        },
-      });
+          });
     }
     case t.ADD_VOLUME: {
       const { setVolume } = state.playerControls;
-      let { volume } = state.playerStatus || 0;
       if (!setVolume) {
         return state;
       }
-      volume += data;
-      if (volume < 0) {
-        volume = 0;
-      } else if (volume > 1) {
-        volume = 1;
-      }
+      const volume = Math.min(Math.max((state.playerStatus.volume ?? 0) + data, 0), 1);
       setVolume(volume);
-      return update(state, {
-        playerStatus: {
-          $merge: {
+      return mergePlayerStatus(state, {
             volume,
             isMuted: volume === 0,
             isChangingVolume: true,
-          },
-        },
-      });
+          });
     }
     case t.DESTROY_PLAYER:
       return {
@@ -207,11 +166,10 @@ export default (state = {}, { type, data }) => {
         playerControls: {},
       };
     case t.SET_WEBVTT_CUES:
-      return update(state, {
-        vttCues: {
-          $merge: data,
-        },
-      });
+      return {
+        ...state,
+        vttCues: { ...state.vttCues, ...data },
+      };
     case t.SHOW_CC_SETTING:
       return {
         ...state,

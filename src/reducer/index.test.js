@@ -104,6 +104,30 @@ describe('reducer', () => {
     expect(playerControls.setVolume).toHaveBeenLastCalledWith(0);
   });
 
+  it('treats an unknown volume as 0 when adding to it', () => {
+    const playerControls = createControls();
+    const state = reducer(createState({ playerControls }), { type: t.ADD_VOLUME, data: 0.1 });
+    expect(state.playerStatus.volume).toBe(0.1);
+  });
+
+  it('merges WebVTT cues per track', () => {
+    let state = reducer(createState(), { type: t.SET_WEBVTT_CUES, data: { English: [1] } });
+    state = reducer(state, { type: t.SET_WEBVTT_CUES, data: { 中文: [2] } });
+    expect(state.vttCues).toEqual({ English: [1], 中文: [2] });
+  });
+
+  it('does not mutate the previous state', () => {
+    const playerControls = createControls();
+    const state = Object.freeze(createState({
+      playerControls,
+      playerStatus: Object.freeze({ volume: 0.5 }),
+    }));
+    const next = reducer(state, { type: t.SET_VOLUME, data: 0.8 });
+    expect(next).not.toBe(state);
+    expect(next.playerStatus).not.toBe(state.playerStatus);
+    expect(state.playerStatus.volume).toBe(0.5);
+  });
+
   it('clears the player on destroy', () => {
     const state = reducer(
       createState({ playerControls: createControls(), playerStatus: { isReady: true } }),

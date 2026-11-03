@@ -1,5 +1,5 @@
 import { use, useEffect } from 'react';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import t from '../../constants/actionTypes';
 import Store from '../../store';
 import { parseWebVTT, getActiveCues } from '../../webvtt';
@@ -48,7 +48,7 @@ const Track = ({
 
   return (
     <div
-      className={classNames(
+      className={clsx(
         styles.container,
         {
           [styles.pullUp]: isShowControls,

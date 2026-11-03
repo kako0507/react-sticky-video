@@ -124,6 +124,45 @@ describe('<StickyVideo /> with a file source', () => {
   });
 });
 
+describe('<StickyVideo /> volume slider', () => {
+  const mockPointer = (coarse) => {
+    vi.stubGlobal('matchMedia', vi.fn((query) => ({
+      matches: coarse && query === '(pointer: coarse)',
+      media: query,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })));
+  };
+
+  const hoverVolume = (container) => {
+    fireEvent(container.querySelector('video'), new Event('canplay'));
+    fireEvent.mouseOver(screen.getByRole('button', { name: 'Mute', hidden: true }));
+    return screen.getByRole('slider', { name: 'Volume', hidden: true });
+  };
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('opens on hover with a mouse', () => {
+    mockPointer(false);
+    const { container } = render(<StickyVideo url="trailer.mp4" />);
+    expect(hoverVolume(container)).toHaveClass('active');
+  });
+
+  it('stays hidden on touch devices', () => {
+    mockPointer(true);
+    const { container } = render(<StickyVideo url="trailer.mp4" />);
+    expect(hoverVolume(container)).not.toHaveClass('active');
+  });
+
+  it('stays hidden in a small player', () => {
+    mockPointer(false);
+    const { container } = render(<StickyVideo url="trailer.mp4" width={320} height={180} />);
+    expect(hoverVolume(container)).not.toHaveClass('active');
+  });
+});
+
 describe('<StickyVideo /> with captions', () => {
   beforeEach(() => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('WEBVTT\n\n00:00.000 --> 00:05.000\nHello', {

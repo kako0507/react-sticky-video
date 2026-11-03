@@ -1,4 +1,4 @@
-import classNames from 'classnames';
+import clsx from 'clsx';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import appStyles from '../../app.module.scss';
 import styles from './icon-button.module.scss';
@@ -12,7 +12,7 @@ const IconButton = ({
 }) => (
   <button
     type="button"
-    className={classNames(
+    className={clsx(
       styles.content,
       {
         [appStyles.hide]: hide,

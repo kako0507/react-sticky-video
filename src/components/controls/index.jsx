@@ -1,5 +1,5 @@
 import { use, useCallback } from 'react';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import {
   faPlay,
   faPause,
@@ -62,13 +62,13 @@ const Controls = ({
     <>
       {!hasPlayed && <PlayCircle isReady={isReady} />}
       <div
-        className={classNames(
+        className={clsx(
           styles.gradientBottom,
           containerStyle,
         )}
       />
       <div
-        className={classNames(
+        className={clsx(
           styles.container,
           containerStyle,
         )}

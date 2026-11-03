@@ -5,9 +5,8 @@ import {
   useEffect,
   useMemo,
 } from 'react';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import { useDebouncedCallback } from 'use-debounce';
-import checkIsMobile from 'ismobilejs';
 import t from './constants/actionTypes';
 import {
   parseYouTubeVideoId,
@@ -19,6 +18,7 @@ import {
 import Store from './store';
 import reducer from './reducer';
 import usePlayerControls from './hooks/use-player-controls';
+import useMediaQuery from './hooks/use-media-query';
 import Track from './components/track';
 import Controls from './components/controls';
 import CaptionSetting from './components/caption-setting';
@@ -47,8 +47,9 @@ const DEFAULT_STICKY_CONFIG = Object.freeze({
 
 const HIDE_CONTROLS_DELAY = 3000;
 
-const isMobileDevice = () => typeof window !== 'undefined'
-  && checkIsMobile(window.navigator.userAgent).any;
+// touch screens can't hover, so the volume slider is hidden there
+const TOUCH_DEVICE_QUERY = '(pointer: coarse)';
+const COMPACT_PLAYER_WIDTH = 400;
 
 const getVideoSource = (url) => {
   const videoId = parseYouTubeVideoId(url);
@@ -119,7 +120,8 @@ const StickyVideo = ({
   const playerSize = isSticky
     ? { width: stickyWidth, height: stickyHeight }
     : { width, height };
-  const isMobile = playerSize.width < 400 || isMobileDevice();
+  const isTouchDevice = useMediaQuery(TOUCH_DEVICE_QUERY);
+  const isMobile = playerSize.width < COMPACT_PLAYER_WIDTH || isTouchDevice;
 
   const { provider, videoId } = getVideoSource(url);
 
@@ -297,7 +299,7 @@ const StickyVideo = ({
       >
         <div
           ref={refHidden}
-          className={classNames(
+          className={clsx(
             styles.hidden,
             { [styles.loading]: !isReady },
           )}
@@ -306,7 +308,7 @@ const StickyVideo = ({
           role="region"
           aria-label="Video player"
           ref={refPlayerContainer}
-          className={classNames(
+          className={clsx(
             styles.player,
             {
               [styles.fullPage]: isFullPage,
@@ -326,7 +328,7 @@ const StickyVideo = ({
             role="button"
             tabIndex={0}
             aria-label={isPlaying ? 'Pause' : 'Play'}
-            className={classNames(
+            className={clsx(
               styles.playerContainer,
               {
                 [styles.seeking]: !originalControls

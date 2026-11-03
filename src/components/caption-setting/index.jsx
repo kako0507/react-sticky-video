@@ -4,7 +4,7 @@ import {
   useCallback,
   useEffect,
 } from 'react';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import t from '../../constants/actionTypes';
 import Store from '../../store';
 import useOnClickOutside from '../../hooks/use-onclickoutside';
@@ -41,7 +41,7 @@ const CaptionSetting = ({ captions, refCCButton }) => {
   return (
     <div
       ref={refPanel}
-      className={classNames(
+      className={clsx(
         styles.panel,
         {
           [appStyles.hide]: !isShowingCCSetting,

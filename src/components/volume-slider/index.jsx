@@ -4,7 +4,7 @@ import {
   useCallback,
   useEffect,
 } from 'react';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import {
   faVolumeHigh,
   faVolumeXmark,
@@ -102,7 +102,7 @@ const VolumeSlider = ({ show = false }) => {
         role="slider"
         tabIndex={0}
         aria-label="Volume"
-        className={classNames(
+        className={clsx(
           styles.panel,
           {
             [styles.active]: show && isVolumeSliderVisible,

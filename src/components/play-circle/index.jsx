@@ -1,4 +1,4 @@
-import classNames from 'classnames';
+import clsx from 'clsx';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
   faCirclePlay,
@@ -10,7 +10,7 @@ import styles from './play-circle.module.scss';
 const PlayCircle = ({ isReady = false }) => (
   <>
     <div
-      className={classNames(
+      className={clsx(
         styles.bg,
         { [appStyles.hide]: !isReady },
       )}

@@ -4,7 +4,7 @@ import {
   useCallback,
   useEffect,
 } from 'react';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import t from '../../constants/actionTypes';
 import {
   getFractionFromMouseEvent,
@@ -108,7 +108,7 @@ const ProgressBar = ({
     >
       <div className={styles.rel}>
         <div
-          className={classNames(
+          className={clsx(
             styles.loaded,
             {
               [appStyles.hide]: loaded === undefined,
@@ -119,7 +119,7 @@ const ProgressBar = ({
           }}
         />
         <div
-          className={classNames(
+          className={clsx(
             styles.hovered,
             {
               [appStyles.hide]: hoveredTime === undefined,
@@ -130,7 +130,7 @@ const ProgressBar = ({
           }}
         />
         <div
-          className={classNames(
+          className={clsx(
             styles.played,
             {
               [appStyles.hide]: currentTime === undefined,
@@ -143,7 +143,7 @@ const ProgressBar = ({
           <div className={styles.dot} />
         </div>
         <div
-          className={classNames(
+          className={clsx(
             styles.tooltipContainer,
             {
               [appStyles.hide]: hoveredTime === undefined,

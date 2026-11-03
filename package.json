@@ -60,9 +60,7 @@
     "@fortawesome/fontawesome-svg-core": "^7.3.1",
     "@fortawesome/free-solid-svg-icons": "^7.3.1",
     "@fortawesome/react-fontawesome": "^3.5.0",
-    "classnames": "^2.5.1",
-    "immutability-helper": "^3.1.1",
-    "ismobilejs": "^1.1.1",
+    "clsx": "^2.1.1",
     "use-debounce": "^10.1.1"
   },
   "devDependencies": {

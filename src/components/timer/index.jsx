@@ -1,4 +1,4 @@
-import classNames from 'classnames';
+import clsx from 'clsx';
 import { getTimeStringFromSeconds } from '../../utils';
 import appStyles from '../../app.module.scss';
 import styles from './timer.module.scss';
@@ -15,7 +15,7 @@ const Timer = ({
   }
   return (
     <div
-      className={classNames(
+      className={clsx(
         styles.container,
         {
           [appStyles.hide]: duration === undefined,
