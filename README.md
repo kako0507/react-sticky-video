@@ -157,7 +157,7 @@ npm test               # unit tests (Vitest + Testing Library)
 npm run test:e2e       # end-to-end tests (Playwright)
 npm run lint
 npm run build          # build the library into dist/
-npm run build-example  # build the demo site into gh-pages/
+npm run build-example  # build the demo site into demo-dist/
 ```
 
 Run `npx playwright install` once before the first end-to-end run.

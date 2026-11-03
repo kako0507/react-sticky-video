@@ -1,7 +1,7 @@
 .DS_Store
 node_modules
 dist
-gh-pages
+demo-dist
 coverage
 test-results
 playwright-report

@@ -42,7 +42,7 @@ const css = {
 };
 
 /**
- * - `vite` / `vite build`   → demo site (example/ → gh-pages/)
+ * - `vite` / `vite build`   → demo site (example/ → demo-dist/)
  * - `vite build --mode lib` → npm package (src/ → dist/)
  */
 export default defineConfig(({ mode }) => {
@@ -86,7 +86,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     build: {
-      outDir: resolvePath('./gh-pages'),
+      outDir: resolvePath('./demo-dist'),
       emptyOutDir: true,
       // react-dom + react-markdown make up most of the demo bundle
       chunkSizeWarningLimit: 600,

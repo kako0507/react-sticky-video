@@ -6,7 +6,7 @@ import jsxA11y from 'eslint-plugin-jsx-a11y';
 
 export default [
   {
-    ignores: ['dist', 'gh-pages', 'coverage', 'playwright-report', 'test-results'],
+    ignores: ['dist', 'demo-dist', 'coverage', 'playwright-report', 'test-results'],
   },
   js.configs.recommended,
   react.configs.flat.recommended,
