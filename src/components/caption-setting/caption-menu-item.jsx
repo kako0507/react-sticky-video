@@ -1,4 +1,4 @@
-import { use, useCallback } from 'react';
+import { useContext, useCallback } from 'react';
 import t from '../../constants/actionTypes';
 import Store from '../../store';
 import styles from './caption-setting.module.scss';
@@ -7,7 +7,7 @@ const CaptionMenuItem = ({ label }) => {
   const {
     state: { selectedCaption },
     dispatch,
-  } = use(Store);
+  } = useContext(Store);
 
   const handleSelect = useCallback(() => {
     dispatch({

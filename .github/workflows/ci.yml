@@ -15,7 +15,13 @@ concurrency:
 
 jobs:
   test:
+    name: test (React ${{ matrix.react }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # every supported major version of the react peer dependency
+        react: [18, 19]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -23,6 +29,8 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - if: matrix.react != 19
+        run: npm install --no-save react@${{ matrix.react }} react-dom@${{ matrix.react }}
       - run: npm run lint
       - run: npm test
       - run: npm run build
@@ -31,7 +39,7 @@ jobs:
       - if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-results
+          name: playwright-results-react-${{ matrix.react }}
           path: |
             playwright-report
             test-results

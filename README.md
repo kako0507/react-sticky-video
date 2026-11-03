@@ -11,6 +11,7 @@ When a playing video is scrolled out of view, it keeps playing in a small floati
 ## Features
 
 - Floating "picture-in-picture" style player while scrolling, with a configurable size and corner
+- Drag the floating player anywhere on the screen (mouse, pen or touch)
 - Supports **YouTube** videos and **video files** (including multiple `<source>` fallbacks)
 - A consistent, YouTube-like control bar for every source: play/pause, seeking, volume, full screen
 - **WebVTT captions** with a built-in caption picker
@@ -18,7 +19,7 @@ When a playing video is scrolled out of view, it keeps playing in a small floati
 
 ## Requirements
 
-- React **19** or later
+- React **18** or **19**
 
 ## Installation
 
@@ -108,6 +109,7 @@ Name | Type | Default | Description
 `width` | `number` | `320` | Width of the floating player in pixels.
 `height` | `number` | `180` | Height of the floating player in pixels.
 `position` | `'top-right'` \| `'top-left'` \| `'bottom-right'` \| `'bottom-left'` | `'bottom-right'` | The corner the floating player is pinned to.
+`draggable` | `boolean` | `true` | Let viewers drag the floating player around. It always stays inside the viewport, and a drag never toggles playback.
 
 Any option you leave out falls back to its default.
 
@@ -119,6 +121,15 @@ Any option you leave out falls back to its default.
     height: 270,
     position: 'top-left',
   }}
+/>
+```
+
+To keep the floating player fixed in its corner, turn dragging off:
+
+```jsx
+<StickyVideo
+  url="https://www.youtube.com/watch?v=7EIkSKnCW8E"
+  stickyConfig={{ draggable: false }}
 />
 ```
 
@@ -142,7 +153,7 @@ Caption files are downloaded with `fetch`, so they must be served from the same 
 
 ## Upgrading from 0.x
 
-- React 19 is now required.
+- React 18 or later is now required.
 - Dailymotion support has been removed; only YouTube and video files are supported.
 - `stickyConfig` options are now merged with the defaults, so you can set just the ones you need.
 - Captions are parsed and rendered by a small built-in WebVTT parser. Cue text (with markup removed) is shown at the bottom of the player; cue settings such as position and alignment, regions and `STYLE` blocks are ignored.

@@ -1,5 +1,5 @@
 /* eslint-disable jsx-a11y/media-has-caption -- captions are rendered by <Track /> */
-import { use, useEffect, useRef } from 'react';
+import { useContext, useEffect, useRef } from 'react';
 import t from '../constants/actionTypes';
 import Store from '../store';
 import usePlayerEvents from '../hooks/use-player-events';
@@ -9,7 +9,7 @@ const FileSource = ({
   playerVars,
   controls,
 }) => {
-  const { dispatch } = use(Store);
+  const { dispatch } = useContext(Store);
   const refPlayer = useRef(null);
   const events = usePlayerEvents(dispatch);
   const multiSource = Array.isArray(source);

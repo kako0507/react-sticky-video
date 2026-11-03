@@ -19,6 +19,7 @@ import Store from './store';
 import reducer from './reducer';
 import usePlayerControls from './hooks/use-player-controls';
 import useMediaQuery from './hooks/use-media-query';
+import useDraggable from './hooks/use-draggable';
 import Track from './components/track';
 import Controls from './components/controls';
 import CaptionSetting from './components/caption-setting';
@@ -43,6 +44,7 @@ const DEFAULT_STICKY_CONFIG = Object.freeze({
   width: 320,
   height: 180,
   position: 'bottom-right',
+  draggable: true,
 });
 
 const HIDE_CONTROLS_DELAY = 3000;
@@ -71,8 +73,8 @@ const getVideoSource = (url) => {
  * @param {Array<{ src: string, label: string, default?: boolean }>} [props.captions]
  *   WebVTT caption tracks.
  * @param {{ width?: number, height?: number, position?: 'top-right' | 'top-left'
- *   | 'bottom-right' | 'bottom-left' }} [props.stickyConfig]
- *   Size and position of the floating player.
+ *   | 'bottom-right' | 'bottom-left', draggable?: boolean }} [props.stickyConfig]
+ *   Size, position and dragging behavior of the floating player.
  * @param {boolean} [props.originalControls=false] Use the provider's native controls.
  */
 const StickyVideo = ({
@@ -106,6 +108,7 @@ const StickyVideo = ({
     width: stickyWidth,
     height: stickyHeight,
     position,
+    draggable,
   } = { ...DEFAULT_STICKY_CONFIG, ...stickyConfig };
 
   const { seekTo } = usePlayerControls(dispatch);
@@ -120,6 +123,13 @@ const StickyVideo = ({
   const playerSize = isSticky
     ? { width: stickyWidth, height: stickyHeight }
     : { width, height };
+  const isFloating = isSticky && !isFullPage;
+  const isDraggable = isFloating && draggable;
+  const { offset: dragOffset, isDragging, dragHandlers } = useDraggable({
+    enabled: isDraggable,
+    layout: { position, width: stickyWidth, height: stickyHeight },
+  });
+
   const isTouchDevice = useMediaQuery(TOUCH_DEVICE_QUERY);
   const isMobile = playerSize.width < COMPACT_PLAYER_WIDTH || isTouchDevice;
 
@@ -292,7 +302,7 @@ const StickyVideo = ({
     );
 
   return (
-    <Store value={storeValue}>
+    <Store.Provider value={storeValue}>
       <div
         className={styles.container}
         style={{ width, height }}
@@ -312,14 +322,16 @@ const StickyVideo = ({
             styles.player,
             {
               [styles.fullPage]: isFullPage,
-              [styles.sticky]: isSticky && !isFullPage,
+              [styles.sticky]: isFloating,
               [styles.stTopRight]: position === 'top-right',
               [styles.stTopLeft]: position === 'top-left',
               [styles.stBottomRight]: position === 'bottom-right',
               [styles.stBottomLeft]: position === 'bottom-left',
             },
           )}
-          style={playerSize}
+          style={isDraggable
+            ? { ...playerSize, translate: `${dragOffset.x}px ${dragOffset.y}px` }
+            : playerSize}
           onMouseLeave={handleHideControls}
           onMouseMove={handleShowControls}
           onFocus={handleShowControls}
@@ -331,11 +343,15 @@ const StickyVideo = ({
             className={clsx(
               styles.playerContainer,
               {
+                // let our handlers (not the YouTube iframe) receive pointer events
                 [styles.seeking]: !originalControls
-                  && (isSeeking || isChangingVolume || isPlaying),
+                  && (isSeeking || isChangingVolume || isPlaying || isDraggable),
+                [styles.draggable]: isDraggable,
+                [styles.dragging]: isDragging,
                 [styles.hide]: !isReady,
               },
             )}
+            {...dragHandlers}
             onClick={handlePlayerControl}
             onKeyDown={handlePlayerControl}
           >
@@ -343,7 +359,7 @@ const StickyVideo = ({
           </div>
           {!originalControls && (
             <Controls
-              ref={refCCButton}
+              ccButtonRef={refCCButton}
               isReady={isReady}
               show={isShowControls}
               isFullScreen={isFullScreen || isFullPage}
@@ -370,7 +386,7 @@ const StickyVideo = ({
           )}
         </div>
       </div>
-    </Store>
+    </Store.Provider>
   );
 };
 

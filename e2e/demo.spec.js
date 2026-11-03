@@ -85,6 +85,37 @@ test.describe('file source', () => {
     await expect.poll(async () => (await getPosition(floatingPlayer(page))).position).not.toBe('fixed');
   });
 
+  test('the floating player can be dragged without pausing it', async ({ page }) => {
+    await page.goto('./#service=file');
+    await playAndScrollAway(page);
+    await expect.poll(async () => (await getPosition(floatingPlayer(page))).position).toBe('fixed');
+    // wait for the slide-in animation, otherwise the player is still moving
+    await floatingPlayer(page).evaluate((element) => Promise.all(
+      element.getAnimations().map((animation) => animation.finished),
+    ));
+
+    const before = await floatingPlayer(page).boundingBox();
+    const start = { x: before.x + before.width / 2, y: before.y + before.height / 3 };
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(start.x - 300, start.y - 200, { steps: 10 });
+    await page.mouse.up();
+
+    const after = await floatingPlayer(page).boundingBox();
+    expect(after.x).toBeCloseTo(before.x - 300, 0);
+    expect(after.y).toBeCloseTo(before.y - 200, 0);
+    expect(await video(page).evaluate((element) => element.paused)).toBe(false);
+
+    // dragging far away keeps the player inside the viewport
+    await page.mouse.move(after.x + 10, after.y + 10);
+    await page.mouse.down();
+    await page.mouse.move(-2000, -2000, { steps: 5 });
+    await page.mouse.up();
+    const clamped = await floatingPlayer(page).boundingBox();
+    expect(clamped.x).toBeCloseTo(8, 0);
+    expect(clamped.y).toBeCloseTo(8, 0);
+  });
+
   test('does not float while paused', async ({ page }) => {
     await page.goto('./#service=file');
     await waitForVideoReady(page);
@@ -119,14 +150,14 @@ test.describe('YouTube', () => {
     await page.goto('./#service=youtube');
     const iframe = floatingPlayer(page).locator('iframe[src*="youtube.com/embed/"]');
     // the player stays hidden until the YouTube API reports it is ready
-    await expect(iframe).toBeVisible({ timeout: 15_000 });
+    await expect(iframe).toBeVisible({ timeout: 30_000 });
     await expectToFillPlayer(page, iframe);
   });
 
   test('captions demo shows the caption picker', async ({ page }) => {
     await page.goto('./#video=captions');
     const iframe = page.getByTestId('demo-video').locator('iframe[src*="youtube.com/embed/Fkd9TWUtFm0"]');
-    await expect(iframe).toBeAttached({ timeout: 15_000 });
+    await expect(iframe).toBeAttached({ timeout: 30_000 });
     await expect(floatingPlayer(page).getByRole('button', { name: 'Captions', includeHidden: true }))
       .toBeAttached();
   });

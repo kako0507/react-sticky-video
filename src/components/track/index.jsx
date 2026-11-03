@@ -1,4 +1,4 @@
-import { use, useEffect } from 'react';
+import { useContext, useEffect } from 'react';
 import clsx from 'clsx';
 import t from '../../constants/actionTypes';
 import Store from '../../store';
@@ -14,7 +14,7 @@ const Track = ({
   const {
     state: { vttCues },
     dispatch,
-  } = use(Store);
+  } = useContext(Store);
 
   // Avoid re-downloading when the parent passes a new but equal `captions` array.
   const captionsKey = JSON.stringify(captions.map(({ src, label }) => ({ src, label })));

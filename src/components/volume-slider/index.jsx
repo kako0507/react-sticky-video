@@ -1,5 +1,5 @@
 import {
-  use,
+  useContext,
   useRef,
   useCallback,
   useEffect,
@@ -29,7 +29,7 @@ const VolumeSlider = ({ show = false }) => {
       },
     },
     dispatch,
-  } = use(Store);
+  } = useContext(Store);
   const { setMuted, setVolume, addVolume } = usePlayerControls(dispatch);
   const refSliderPanel = useRef(null);
   const displayedVolume = isMuted || !volume ? 0 : volume;
