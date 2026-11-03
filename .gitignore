@@ -1,5 +1,10 @@
 .DS_Store
-yarn-error.log
 node_modules
 dist
-gh-pages
+demo-dist
+coverage
+test-results
+playwright-report
+blob-report
+playwright/.cache
+*.log

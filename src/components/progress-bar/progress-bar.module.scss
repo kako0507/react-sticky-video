@@ -1,4 +1,5 @@
-@import "../../variables.scss";
+@use "sass:math";
+@use "../../variables" as *;
 
 .container {
   height: $progress-height;
@@ -19,7 +20,7 @@
     &::after {
       content: "";
       position: absolute;
-      top: ($progress-visual-height - $progress-hovered-height) / 2;
+      top: math.div($progress-visual-height - $progress-hovered-height, 2);
       left: 0;
       width: 100%;
       height: $progress-hovered-height;
@@ -64,13 +65,13 @@
     &::after {
       content: "";
       position: absolute;
-      top: ($progress-hovered-visual-height - $progress-dot-height) / 2;
-      right: -$progress-dot-height / 2;
+      top: math.div($progress-hovered-visual-height - $progress-dot-height, 2);
+      right: math.div(-$progress-dot-height, 2);
       height: $progress-dot-height;
       width: $progress-dot-height;
       background-color: $progress-played-color;
       border-radius: 50%;
-      display: inline-block; 
+      display: inline-block;
     }
   }
   &:hover {
@@ -78,7 +79,7 @@
     .loaded,
     .hovered,
     .played {
-      top: ($progress-visual-height - $progress-hovered-visual-height) / 2;
+      top: math.div($progress-visual-height - $progress-hovered-visual-height, 2);
       height: $progress-hovered-visual-height;
     }
     .rel::after,

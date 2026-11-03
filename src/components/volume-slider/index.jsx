@@ -1,28 +1,24 @@
-import React, {
-  useContext,
+import {
+  use,
   useRef,
   useCallback,
   useEffect,
 } from 'react';
-import PropTypes from 'prop-types';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import {
-  faVolumeUp,
-  faVolumeMute,
+  faVolumeHigh,
+  faVolumeXmark,
 } from '@fortawesome/free-solid-svg-icons';
 import t from '../../constants/actionTypes';
-import {
-  getFractionFromMouseEvent,
-} from '../../utils';
+import { getFractionFromMouseEvent } from '../../utils';
 import Store from '../../store';
 import IconButton from '../icon-button';
-import styles from './volume-slider.scss';
-import variables from '../../variables.scss';
 import usePlayerControls from '../../hooks/use-player-controls';
+import styles from './volume-slider.module.scss';
 
-const [volumeSliderWidth] = variables.volumeSliderWidth.split('px');
+const VOLUME_STEP = 0.1;
 
-const VolumeSlider = ({ show }) => {
+const VolumeSlider = ({ show = false }) => {
   const {
     state: {
       isVolumeSliderVisible,
@@ -33,20 +29,14 @@ const VolumeSlider = ({ show }) => {
       },
     },
     dispatch,
-  } = useContext(Store);
-  const {
-    setMuted,
-    setVolume,
-    addVolume,
-  } = usePlayerControls(dispatch);
+  } = use(Store);
+  const { setMuted, setVolume, addVolume } = usePlayerControls(dispatch);
   const refSliderPanel = useRef(null);
+  const displayedVolume = isMuted || !volume ? 0 : volume;
 
-  const setToMuted = useCallback(() => {
-    setMuted(true);
-  }, [setMuted]);
-  const setToUnMuted = useCallback(() => {
-    setMuted(false);
-  }, [setMuted]);
+  const toggleMuted = useCallback(() => {
+    setMuted(!isMuted);
+  }, [setMuted, isMuted]);
   const handleMouseOver = useCallback(() => {
     dispatch({
       type: t.SHOW_VOLUME_SLIDER,
@@ -64,31 +54,29 @@ const VolumeSlider = ({ show }) => {
 
   const handleSliderMouseDown = useCallback((event) => {
     const elemSliderPanel = refSliderPanel.current;
-    const fraction = getFractionFromMouseEvent(elemSliderPanel, event);
-    setVolume(fraction);
+    setVolume(getFractionFromMouseEvent(elemSliderPanel, event));
     elemSliderPanel.focus();
   }, [setVolume]);
   const handleStopSliderAction = useCallback(() => {
     setVolume();
   }, [setVolume]);
   const handleSliderKeyDown = useCallback((event) => {
-    if (!addVolume) {
-      return;
-    }
-    if (event.keyCode === 39) {
-      addVolume(0.1);
-    } else if (event.keyCode === 37) {
-      addVolume(-0.1);
+    if (event.key === 'ArrowRight' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      addVolume(VOLUME_STEP);
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      addVolume(-VOLUME_STEP);
     }
   }, [addVolume]);
 
   useEffect(() => {
+    if (!isChangingVolume) {
+      return undefined;
+    }
     const elemSliderPanel = refSliderPanel.current;
     const handleSliderMouseMove = (event) => {
-      if (isChangingVolume) {
-        const fraction = getFractionFromMouseEvent(elemSliderPanel, event);
-        setVolume(fraction);
-      }
+      setVolume(getFractionFromMouseEvent(elemSliderPanel, event));
     };
     document.addEventListener('mousemove', handleSliderMouseMove);
     return () => {
@@ -105,19 +93,16 @@ const VolumeSlider = ({ show }) => {
       onMouseOut={handleMouseOut}
     >
       <IconButton
-        icon={isMuted
-          ? faVolumeMute
-          : faVolumeUp}
-        onClick={isMuted
-          ? setToUnMuted
-          : setToMuted}
-        disabled={!setMuted}
+        icon={isMuted ? faVolumeXmark : faVolumeHigh}
+        label={isMuted ? 'Unmute' : 'Mute'}
+        onClick={toggleMuted}
       />
       <div
         ref={refSliderPanel}
         role="slider"
-        tabIndex="0"
-        className={classNames(
+        tabIndex={0}
+        aria-label="Volume"
+        className={clsx(
           styles.panel,
           {
             [styles.active]: show && isVolumeSliderVisible,
@@ -125,7 +110,7 @@ const VolumeSlider = ({ show }) => {
         )}
         aria-valuemin={0}
         aria-valuemax={100}
-        aria-valuenow={volume}
+        aria-valuenow={Math.round(displayedVolume * 100)}
         onMouseDown={handleSliderMouseDown}
         onKeyDown={handleSliderKeyDown}
         onKeyUp={handleStopSliderAction}
@@ -134,22 +119,12 @@ const VolumeSlider = ({ show }) => {
         <div className={styles.content}>
           <div
             className={styles.handle}
-            style={{
-              left: (isMuted || !volume) ? 0 : volume * volumeSliderWidth,
-            }}
+            style={{ '--volume': displayedVolume }}
           />
         </div>
       </div>
     </div>
   );
-};
-
-VolumeSlider.propTypes = {
-  show: PropTypes.bool,
-};
-
-VolumeSlider.defaultProps = {
-  show: false,
 };
 
 export default VolumeSlider;

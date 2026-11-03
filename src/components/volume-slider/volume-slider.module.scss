@@ -1,4 +1,5 @@
-@import "../../variables.scss";
+@use "sass:math";
+@use "../../variables" as *;
 
 .container {
   >button,
@@ -28,10 +29,11 @@
       >.handle {
         position: absolute;
         top: 50%;
+        left: calc(var(--volume, 0) * (100% - #{$volume-slider-diameter}));
         width: $volume-slider-diameter;
         height: $volume-slider-diameter;
-        border-radius: $volume-slider-diameter / 2;
-        margin-top: -$volume-slider-diameter / 2;
+        border-radius: math.div($volume-slider-diameter, 2);
+        margin-top: math.div(-$volume-slider-diameter, 2);
         background: #fff;
         &::before,
         &::after {
@@ -41,15 +43,15 @@
           top: 50%;
           width: $volume-slider-width + $volume-slider-diameter;
           height: $volume-slider-height;
-          margin-top: -$volume-slider-height / 2;
+          margin-top: math.div(-$volume-slider-height, 2);
         }
         &::before {
-          left: -$volume-slider-width - ($volume-slider-diameter / 2);
+          left: -$volume-slider-width - math.div($volume-slider-diameter, 2);
           background-color: $volume-slider-color;
         }
         &::after {
-          left: $volume-slider-diameter / 2;
-          background-color: $volume-slider-bg-color;      
+          left: math.div($volume-slider-diameter, 2);
+          background-color: $volume-slider-bg-color;
         }
       }
     }

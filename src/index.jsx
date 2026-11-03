@@ -1,19 +1,15 @@
-import _ from 'lodash';
-import React, {
+import {
   useReducer,
   useRef,
   useCallback,
   useEffect,
+  useMemo,
 } from 'react';
-import PropTypes from 'prop-types';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import { useDebouncedCallback } from 'use-debounce';
-import urlParser from 'js-video-url-parser/lib/base';
-import 'js-video-url-parser/lib/provider/dailymotion';
-import 'js-video-url-parser/lib/provider/youtube';
-import checkIsMobile from 'ismobilejs';
 import t from './constants/actionTypes';
 import {
+  parseYouTubeVideoId,
   isElementInViewport,
   checkFullScreen,
   openFullscreen,
@@ -22,40 +18,78 @@ import {
 import Store from './store';
 import reducer from './reducer';
 import usePlayerControls from './hooks/use-player-controls';
+import useMediaQuery from './hooks/use-media-query';
 import Track from './components/track';
 import Controls from './components/controls';
 import CaptionSetting from './components/caption-setting';
 import Youtube from './providerComponents/youtube';
-import Dailymotion from './providerComponents/dailymotion';
 import FileSource from './providerComponents/file-source';
-import styles from './app.scss';
+import styles from './app.module.scss';
 
 const initialState = {
   playerStatus: {},
   playerControls: {},
-  fullPage: {},
   vttCues: {},
 };
 
+const DEFAULT_PLAYER_VARS = Object.freeze({
+  autoplay: false,
+  muted: false,
+});
+
+const DEFAULT_CAPTIONS = Object.freeze([]);
+
+const DEFAULT_STICKY_CONFIG = Object.freeze({
+  width: 320,
+  height: 180,
+  position: 'bottom-right',
+});
+
+const HIDE_CONTROLS_DELAY = 3000;
+
+// touch screens can't hover, so the volume slider is hidden there
+const TOUCH_DEVICE_QUERY = '(pointer: coarse)';
+const COMPACT_PLAYER_WIDTH = 400;
+
+const getVideoSource = (url) => {
+  const videoId = parseYouTubeVideoId(url);
+  return videoId
+    ? { provider: 'youtube', videoId }
+    : { provider: 'file' };
+};
+
+/**
+ * A video player that floats to a corner of the viewport while it is playing
+ * and has been scrolled out of view.
+ *
+ * @param {object} props
+ * @param {string | Array<{ src: string, type?: string }>} props.url
+ *   A YouTube URL, a video file URL, or a list of `<source>` entries.
+ * @param {number} [props.width=640] Width of the inline player.
+ * @param {number} [props.height=360] Height of the inline player.
+ * @param {object} [props.playerVars] Parameters passed to the underlying player.
+ * @param {Array<{ src: string, label: string, default?: boolean }>} [props.captions]
+ *   WebVTT caption tracks.
+ * @param {{ width?: number, height?: number, position?: 'top-right' | 'top-left'
+ *   | 'bottom-right' | 'bottom-left' }} [props.stickyConfig]
+ *   Size and position of the floating player.
+ * @param {boolean} [props.originalControls=false] Use the provider's native controls.
+ */
 const StickyVideo = ({
   url,
-  height,
-  width,
-  playerVars,
-  captions,
-  stickyConfig: {
-    width: stickyWidth,
-    height: stickyHeight,
-    position,
-  },
-  originalControls,
+  width = 640,
+  height = 360,
+  playerVars = DEFAULT_PLAYER_VARS,
+  captions = DEFAULT_CAPTIONS,
+  stickyConfig,
+  originalControls = false,
 }) => {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   const {
     isSticky,
     isFullScreen,
-    fullPage,
+    isFullPage,
     isFocusPlayer,
     selectedCaption,
     playerStatus: {
@@ -69,55 +103,42 @@ const StickyVideo = ({
   } = state;
 
   const {
-    seekTo,
-  } = usePlayerControls(dispatch);
+    width: stickyWidth,
+    height: stickyHeight,
+    position,
+  } = { ...DEFAULT_STICKY_CONFIG, ...stickyConfig };
+
+  const { seekTo } = usePlayerControls(dispatch);
 
   const refHidden = useRef(null);
   const refPlayerContainer = useRef(null);
   const refCCButton = useRef(null);
 
   const isShowControls = isFocusPlayer || !isPlaying;
-  const isFullPage = fullPage?.open;
+  const hasCaptions = captions.length > 0;
 
   const playerSize = isSticky
-    ? {
-      width: stickyWidth,
-      height: stickyHeight,
-    }
-    : {
-      width,
-      height,
-    };
-  const isMobile = playerSize.width < 400 || checkIsMobile(window.navigator.userAgent).any;
+    ? { width: stickyWidth, height: stickyHeight }
+    : { width, height };
+  const isTouchDevice = useMediaQuery(TOUCH_DEVICE_QUERY);
+  const isMobile = playerSize.width < COMPACT_PLAYER_WIDTH || isTouchDevice;
 
-  let videoId;
-  let provider;
-  if (typeof url === 'string') {
-    ({ id: videoId, provider } = urlParser.parse(url));
-  } else {
-    provider = 'file';
-  }
+  const { provider, videoId } = getVideoSource(url);
 
+  const canHideControls = !isSeeking && !isChangingVolume && !isVolumeSliderVisible;
   const handleHideControls = useCallback(() => {
-    if (_.every([
-      !isSeeking,
-      !isChangingVolume,
-      !isVolumeSliderVisible,
-    ])) {
+    if (canHideControls) {
       dispatch({
         type: t.FOCUS_PLAYER,
         data: false,
       });
     }
-  }, [
-    isSeeking,
-    isChangingVolume,
-    isVolumeSliderVisible,
-  ]);
-  const [debounceHideControls, cancelHideControls] = useDebouncedCallback(
+  }, [canHideControls]);
+  const debounceHideControls = useDebouncedCallback(
     handleHideControls,
-    3000,
+    HIDE_CONTROLS_DELAY,
   );
+  const cancelHideControls = debounceHideControls.cancel;
   const handleShowControls = useCallback(() => {
     dispatch({
       type: t.FOCUS_PLAYER,
@@ -126,10 +147,13 @@ const StickyVideo = ({
     debounceHideControls();
   }, [debounceHideControls]);
   const handlePlayerControl = useCallback((event) => {
-    const playing = !isPlaying;
-    if (event.type === 'keypress' && event.charCode !== 32) {
-      return;
+    if (event.type === 'keydown') {
+      if (event.key !== ' ') {
+        return;
+      }
+      event.preventDefault();
     }
+    const playing = !isPlaying;
     dispatch({
       type: t.SET_PLAYING,
       data: {
@@ -153,36 +177,41 @@ const StickyVideo = ({
   }, []);
   const handleCancelFullscreen = useCallback(() => {
     closeFullscreen();
-    if (isFullPage) {
-      dispatch({
-        type: t.SET_FULLPAGE,
-        data: false,
-      });
-    }
-  }, [isFullPage]);
+    dispatch({
+      type: t.SET_FULLPAGE,
+      data: false,
+    });
+  }, []);
 
+  // float the player while it is playing and scrolled out of the viewport
   useEffect(() => {
     const element = refHidden.current;
     const handleScroll = () => {
-      if (!isSticky && !isElementInViewport(element)) {
-        if (isPlaying) {
-          dispatch({
-            type: t.SET_STICKY,
-            data: true,
-          });
-        }
-      }
-      if (isSticky && isElementInViewport(element)) {
+      const inViewport = isElementInViewport(element);
+      if (!isSticky && !inViewport && isPlaying) {
+        dispatch({
+          type: t.SET_STICKY,
+          data: true,
+        });
+      } else if (isSticky && inViewport) {
         dispatch({
           type: t.SET_STICKY,
           data: false,
         });
       }
     };
+    document.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      document.removeEventListener('scroll', handleScroll);
+    };
+  }, [isSticky, isPlaying]);
+
+  // finish seeking / changing volume when the pointer is released anywhere
+  useEffect(() => {
+    if (!isFocusPlayer) {
+      return undefined;
+    }
     const handleMouseUp = () => {
-      if (!isFocusPlayer) {
-        return;
-      }
       if (isSeeking) {
         seekTo();
       } else if (isChangingVolume) {
@@ -192,41 +221,45 @@ const StickyVideo = ({
       }
       debounceHideControls();
     };
-    const handleFullScreeChange = () => {
+    document.addEventListener('mouseup', handleMouseUp);
+    document.addEventListener('touchend', handleMouseUp);
+    return () => {
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('touchend', handleMouseUp);
+    };
+  }, [isFocusPlayer, isSeeking, isChangingVolume, seekTo, debounceHideControls]);
+
+  useEffect(() => {
+    const handleFullScreenChange = () => {
       dispatch({
         type: t.SET_FULLSCREEN,
         data: checkFullScreen(),
       });
     };
-    document.addEventListener('scroll', handleScroll);
-    document.addEventListener('mouseup', handleMouseUp);
-    document.addEventListener('touchend', handleMouseUp);
-    document.addEventListener('fullscreenchange', handleFullScreeChange);
-    document.addEventListener('mozfullscreenchange', handleFullScreeChange);
-    document.addEventListener('webkitfullscreenchange', handleFullScreeChange);
-    document.addEventListener('msfullscreenchange', handleFullScreeChange);
+    document.addEventListener('fullscreenchange', handleFullScreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullScreenChange);
     return () => {
-      document.removeEventListener('scroll', handleScroll);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('touchend', handleMouseUp);
-      document.removeEventListener('fullscreenchange', handleFullScreeChange);
-      document.removeEventListener('mozfullscreenchange', handleFullScreeChange);
-      document.removeEventListener('webkitfullscreenchange', handleFullScreeChange);
-      document.removeEventListener('msfullscreenchange', handleFullScreeChange);
+      document.removeEventListener('fullscreenchange', handleFullScreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullScreenChange);
     };
-  }, [
-    isSticky,
-    width,
-    height,
-    stickyWidth,
-    stickyHeight,
-    isFocusPlayer,
-    seekTo,
-    isSeeking,
-    isChangingVolume,
-    debounceHideControls,
-    isPlaying,
-  ]);
+  }, []);
+
+  // "full page" fallback for browsers without the Fullscreen API (e.g. iOS Safari)
+  useEffect(() => {
+    if (!isFullPage) {
+      return undefined;
+    }
+    const { style } = document.body;
+    const { width: bodyWidth, height: bodyHeight, overflow } = style;
+    style.width = '100vw';
+    style.height = '100vh';
+    style.overflow = 'hidden';
+    return () => {
+      style.width = bodyWidth;
+      style.height = bodyHeight;
+      style.overflow = overflow;
+    };
+  }, [isFullPage]);
 
   useEffect(() => {
     dispatch({
@@ -234,62 +267,48 @@ const StickyVideo = ({
     });
   }, [url]);
 
-  let nodePlayer;
-  switch (provider) {
-    case 'youtube':
-      nodePlayer = (
-        <Youtube
-          videoId={videoId}
-          playerVars={playerVars}
-          controls={originalControls}
-        />
-      );
-      break;
-    case 'dailymotion':
-      nodePlayer = (
-        <Dailymotion
-          videoId={videoId}
-          playerVars={playerVars}
-          controls={originalControls}
-        />
-      );
-      break;
-    default:
-      nodePlayer = (
-        <FileSource
-          source={url}
-          playerVars={playerVars}
-          controls={originalControls}
-        />
-      );
-  }
+  useEffect(() => () => {
+    debounceHideControls.cancel();
+  }, [debounceHideControls]);
+
+  const storeValue = useMemo(() => ({ state, dispatch }), [state]);
+
+  const nodePlayer = provider === 'youtube'
+    ? (
+      <Youtube
+        videoId={videoId}
+        playerVars={playerVars}
+        controls={originalControls}
+      />
+    )
+    : (
+      <FileSource
+        // remount when the source changes so the browser reloads the media
+        key={JSON.stringify(url)}
+        source={url}
+        playerVars={playerVars}
+        controls={originalControls}
+      />
+    );
 
   return (
-    <Store.Provider
-      value={{
-        state,
-        dispatch,
-      }}
-    >
+    <Store value={storeValue}>
       <div
         className={styles.container}
-        style={{
-          width,
-          height,
-        }}
+        style={{ width, height }}
       >
         <div
           ref={refHidden}
-          className={classNames(
+          className={clsx(
             styles.hidden,
             { [styles.loading]: !isReady },
           )}
         />
         <div
-          role="button"
-          tabIndex="0"
+          role="region"
+          aria-label="Video player"
           ref={refPlayerContainer}
-          className={classNames(
+          className={clsx(
             styles.player,
             {
               [styles.fullPage]: isFullPage,
@@ -307,20 +326,18 @@ const StickyVideo = ({
         >
           <div
             role="button"
-            tabIndex="0"
-            className={classNames(
+            tabIndex={0}
+            aria-label={isPlaying ? 'Pause' : 'Play'}
+            className={clsx(
               styles.playerContainer,
               {
-                [styles.seeking]: !originalControls && _.some([
-                  isSeeking,
-                  isChangingVolume,
-                  isPlaying,
-                ]),
+                [styles.seeking]: !originalControls
+                  && (isSeeking || isChangingVolume || isPlaying),
                 [styles.hide]: !isReady,
               },
             )}
             onClick={handlePlayerControl}
-            onKeyPress={handlePlayerControl}
+            onKeyDown={handlePlayerControl}
           >
             {nodePlayer}
           </div>
@@ -331,74 +348,30 @@ const StickyVideo = ({
               show={isShowControls}
               isFullScreen={isFullScreen || isFullPage}
               isMobile={isMobile}
-              captions={captions}
+              hasCaptions={hasCaptions}
               onClickFullscreen={handleClickFullscreen}
               onCancelFullscreen={handleCancelFullscreen}
               cancelHideControls={cancelHideControls}
             />
           )}
-          {selectedCaption && captions?.length > 0 && (
+          {selectedCaption && hasCaptions && (
             <Track
               isShowControls={isShowControls}
-              isSticky={isSticky}
               currentTime={currentTime}
               captions={captions}
               selectedCaption={selectedCaption}
             />
           )}
-          {captions?.length > 0 && (
+          {hasCaptions && (
             <CaptionSetting
-              elemCCButton={refCCButton.current}
+              refCCButton={refCCButton}
               captions={captions}
-              selectedCaption={selectedCaption}
             />
           )}
         </div>
       </div>
-    </Store.Provider>
+    </Store>
   );
-};
-
-StickyVideo.propTypes = {
-  url: PropTypes.oneOfType([
-    PropTypes.array,
-    PropTypes.string,
-  ]).isRequired,
-  width: PropTypes.number,
-  height: PropTypes.number,
-  playerVars: PropTypes.shape({
-    autoplay: PropTypes.bool,
-  }),
-  captions: PropTypes.arrayOf(
-    PropTypes.object,
-  ),
-  stickyConfig: PropTypes.shape({
-    width: PropTypes.number,
-    height: PropTypes.number,
-    position: PropTypes.oneOf([
-      'top-right',
-      'top-left',
-      'bottom-right',
-      'bottom-left',
-    ]),
-  }),
-  originalControls: PropTypes.bool,
-};
-
-StickyVideo.defaultProps = {
-  width: 640,
-  height: 360,
-  playerVars: {
-    autoplay: false,
-    mute: false,
-  },
-  captions: [],
-  stickyConfig: {
-    width: 320,
-    height: 180,
-    position: 'bottom-right',
-  },
-  originalControls: false,
 };
 
 export default StickyVideo;

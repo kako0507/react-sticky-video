@@ -1,3 +1,5 @@
+@use "sass:math";
+
 $player-z: 1000;
 $controls-z: 2000;
 $sticky-padding: 20px;
@@ -5,7 +7,7 @@ $controls-visual-height: 41px;
 $progress-visual-height: 3px;
 $progress-hovered-height: 21px;
 $progress-hovered-visual-height: 5px;
-$progress-height: ($progress-hovered-height + $progress-visual-height) / 2;
+$progress-height: math.div($progress-hovered-height + $progress-visual-height, 2);
 $progress-dot-height: 13px;
 $progress-bg-color: rgba(255, 255, 255, .2);
 $progress-loaded-color: rgba(255, 255, 255, .4);
@@ -15,13 +17,9 @@ $icon-button-width: 40px;
 $icon-button-padding: 10px 7px;
 $icon-button-size: 16px;
 $icon-button-color: #c9c9c9;
-$volume-slider-width: 40px; // Because this variable is required by javascript, please use px value unit.
+$volume-slider-width: 40px;
 $volume-slider-height: 3px;
 $volume-slider-color: #fff;
 $volume-slider-diameter: 12px;
 $volume-slider-bg-color: rgba(255,255,255,.2);
 $menu-position-padding: 8px;
-
-:export {
-  volumeSliderWidth: $volume-slider-width;
-}

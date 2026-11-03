@@ -1,10 +1,5 @@
-/* eslint-disable jsx-a11y/media-has-caption */
-import React, {
-  useContext,
-  useRef,
-  useEffect,
-} from 'react';
-import PropTypes from 'prop-types';
+/* eslint-disable jsx-a11y/media-has-caption -- captions are rendered by <Track /> */
+import { use, useEffect, useRef } from 'react';
 import t from '../constants/actionTypes';
 import Store from '../store';
 import usePlayerEvents from '../hooks/use-player-events';
@@ -14,7 +9,7 @@ const FileSource = ({
   playerVars,
   controls,
 }) => {
-  const { dispatch } = useContext(Store);
+  const { dispatch } = use(Store);
   const refPlayer = useRef(null);
   const events = usePlayerEvents(dispatch);
   const multiSource = Array.isArray(source);
@@ -62,12 +57,16 @@ const FileSource = ({
     };
     const onProgressUpdate = () => {
       const { buffered, duration } = elemPlayer;
-      let loaded = 0;
-      if (buffered?.length && duration) {
-        loaded = elemPlayer.buffered.end(0) / duration;
-      }
+      const loaded = buffered.length && duration
+        ? buffered.end(buffered.length - 1) / duration
+        : 0;
       events.onProgressUpdate(loaded);
     };
+
+    // The media may already be ready when the effect runs (e.g. cached files).
+    if (elemPlayer.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+      onReady();
+    }
 
     elemPlayer.addEventListener('canplay', onReady);
     elemPlayer.addEventListener('durationchange', onDurationChange);
@@ -86,13 +85,12 @@ const FileSource = ({
         type: t.DESTROY_PLAYER,
       });
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [events, dispatch]);
 
   useEffect(() => {
     dispatch({
       type: t.SET_MUTE,
-      data: playerVars.muted,
+      data: Boolean(playerVars.muted),
     });
   }, [dispatch, playerVars.muted]);
 
@@ -115,24 +113,6 @@ const FileSource = ({
       ))}
     </video>
   );
-};
-
-FileSource.propTypes = {
-  source: PropTypes.oneOfType([
-    PropTypes.string,
-    PropTypes.arrayOf(
-      PropTypes.shape({
-        src: PropTypes.string,
-        type: PropTypes.string,
-      }),
-    ),
-  ]).isRequired,
-  playerVars: PropTypes.shape({
-    autoplay: PropTypes.bool,
-    loop: PropTypes.bool,
-    muted: PropTypes.bool,
-  }).isRequired,
-  controls: PropTypes.bool.isRequired,
 };
 
 export default FileSource;

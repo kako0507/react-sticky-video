@@ -1,48 +1,30 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import appStyles from '../../app.scss';
-import styles from './icon-button.scss';
+import appStyles from '../../app.module.scss';
+import styles from './icon-button.module.scss';
 
 const IconButton = ({
   icon,
-  hide,
-  disabled,
+  label,
+  hide = false,
+  disabled = false,
   onClick,
 }) => (
   <button
     type="button"
-    className={classNames(
+    className={clsx(
       styles.content,
       {
         [appStyles.hide]: hide,
       },
     )}
+    aria-label={label}
+    title={label}
     onClick={onClick}
     disabled={disabled}
   >
-    <FontAwesomeIcon
-      icon={icon}
-    />
+    <FontAwesomeIcon icon={icon} />
   </button>
 );
-
-IconButton.propTypes = {
-  icon: PropTypes.oneOfType([
-    PropTypes.object,
-    PropTypes.array,
-    PropTypes.string,
-  ]).isRequired,
-  hide: PropTypes.bool,
-  disabled: PropTypes.bool,
-  onClick: PropTypes.func,
-};
-
-IconButton.defaultProps = {
-  hide: false,
-  disabled: false,
-  onClick: undefined,
-};
 
 export default IconButton;

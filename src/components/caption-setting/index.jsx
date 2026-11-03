@@ -1,26 +1,22 @@
-import _ from 'lodash';
-import React, {
-  useContext,
+import {
+  use,
   useRef,
   useCallback,
+  useEffect,
 } from 'react';
-import PropTypes from 'prop-types';
-import classNames from 'classnames';
-import useDeepCompareEffect from 'use-deep-compare-effect';
+import clsx from 'clsx';
 import t from '../../constants/actionTypes';
 import Store from '../../store';
 import useOnClickOutside from '../../hooks/use-onclickoutside';
 import CaptionMenuItem from './caption-menu-item';
-import appStyles from '../../app.scss';
-import styles from './caption-setting.scss';
+import appStyles from '../../app.module.scss';
+import styles from './caption-setting.module.scss';
 
-const CaptionSetting = ({ captions, elemCCButton }) => {
+const CaptionSetting = ({ captions, refCCButton }) => {
   const {
-    state: {
-      isShowingCCSetting,
-    },
+    state: { isShowingCCSetting },
     dispatch,
-  } = useContext(Store);
+  } = use(Store);
   const refPanel = useRef(null);
 
   const close = useCallback(() => {
@@ -30,22 +26,22 @@ const CaptionSetting = ({ captions, elemCCButton }) => {
     });
   }, [dispatch]);
 
-  useDeepCompareEffect(() => {
-    const defaultCaption = _.find(captions, (c) => c.default);
-    if (defaultCaption?.label) {
+  const defaultCaptionLabel = captions.find((caption) => caption.default)?.label;
+  useEffect(() => {
+    if (defaultCaptionLabel) {
       dispatch({
         type: t.SELECT_CAPTION,
-        data: defaultCaption.label,
+        data: defaultCaptionLabel,
       });
     }
-  }, [captions]);
+  }, [dispatch, defaultCaptionLabel]);
 
-  useOnClickOutside(refPanel, close, elemCCButton);
+  useOnClickOutside(refPanel, close, refCCButton);
 
   return (
     <div
       ref={refPanel}
-      className={classNames(
+      className={clsx(
         styles.panel,
         {
           [appStyles.hide]: !isShowingCCSetting,
@@ -65,18 +61,6 @@ const CaptionSetting = ({ captions, elemCCButton }) => {
       </div>
     </div>
   );
-};
-
-CaptionSetting.propTypes = {
-  captions: PropTypes.arrayOf(PropTypes.shape({
-    default: PropTypes.bool,
-    label: PropTypes.string,
-  })).isRequired,
-  elemCCButton: PropTypes.instanceOf(Element),
-};
-
-CaptionSetting.defaultProps = {
-  elemCCButton: undefined,
 };
 
 export default CaptionSetting;

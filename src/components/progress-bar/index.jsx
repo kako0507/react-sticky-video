@@ -1,19 +1,18 @@
-import React, {
-  useContext,
+import {
+  use,
   useRef,
   useCallback,
   useEffect,
 } from 'react';
-import PropTypes from 'prop-types';
-import classNames from 'classnames';
+import clsx from 'clsx';
 import t from '../../constants/actionTypes';
 import {
   getFractionFromMouseEvent,
   getTimeStringFromSeconds,
 } from '../../utils';
 import Store from '../../store';
-import appStyles from '../../app.scss';
-import styles from './progress-bar.scss';
+import appStyles from '../../app.module.scss';
+import styles from './progress-bar.module.scss';
 
 const tooltipContainerWidth = 200;
 
@@ -31,7 +30,7 @@ const ProgressBar = ({
       },
     },
     dispatch,
-  } = useContext(Store);
+  } = use(Store);
   const refProgressContainer = useRef(null);
   let currentTimePercentage;
   let hoveredTimePercentage;
@@ -90,10 +89,11 @@ const ProgressBar = ({
   }, [seekTo, isSeeking, dispatch]);
 
   return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events
+    // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- keyboard seeking is not supported yet
     <div
       role="slider"
-      tabIndex="-1"
+      tabIndex={-1}
+      aria-label="Seek"
       ref={refProgressContainer}
       className={styles.container}
       onClick={handleProgressClick}
@@ -108,7 +108,7 @@ const ProgressBar = ({
     >
       <div className={styles.rel}>
         <div
-          className={classNames(
+          className={clsx(
             styles.loaded,
             {
               [appStyles.hide]: loaded === undefined,
@@ -119,7 +119,7 @@ const ProgressBar = ({
           }}
         />
         <div
-          className={classNames(
+          className={clsx(
             styles.hovered,
             {
               [appStyles.hide]: hoveredTime === undefined,
@@ -130,7 +130,7 @@ const ProgressBar = ({
           }}
         />
         <div
-          className={classNames(
+          className={clsx(
             styles.played,
             {
               [appStyles.hide]: currentTime === undefined,
@@ -143,7 +143,7 @@ const ProgressBar = ({
           <div className={styles.dot} />
         </div>
         <div
-          className={classNames(
+          className={clsx(
             styles.tooltipContainer,
             {
               [appStyles.hide]: hoveredTime === undefined,
@@ -161,14 +161,6 @@ const ProgressBar = ({
       </div>
     </div>
   );
-};
-
-ProgressBar.propTypes = {
-  seekTo: PropTypes.func,
-};
-
-ProgressBar.defaultProps = {
-  seekTo: undefined,
 };
 
 export default ProgressBar;

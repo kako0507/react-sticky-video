@@ -1,11 +1,7 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import classNames from 'classnames';
-import {
-  getTimeStringFromSeconds,
-} from '../../utils';
-import appStyles from '../../app.scss';
-import styles from './timer.scss';
+import clsx from 'clsx';
+import { getTimeStringFromSeconds } from '../../utils';
+import appStyles from '../../app.module.scss';
+import styles from './timer.module.scss';
 
 const Timer = ({
   currentTime,
@@ -19,7 +15,7 @@ const Timer = ({
   }
   return (
     <div
-      className={classNames(
+      className={clsx(
         styles.container,
         {
           [appStyles.hide]: duration === undefined,
@@ -35,16 +31,6 @@ const Timer = ({
       </span>
     </div>
   );
-};
-
-Timer.propTypes = {
-  currentTime: PropTypes.number,
-  duration: PropTypes.number,
-};
-
-Timer.defaultProps = {
-  currentTime: undefined,
-  duration: undefined,
 };
 
 export default Timer;
